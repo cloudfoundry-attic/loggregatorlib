@@ -1,4 +1,4 @@
-loggregatorlib
+loggregatorlib [![Build Status](https://travis-ci.org/cloudfoundry/loggregatorlib.png?branch=master)](https://travis-ci.org/cloudfoundry/loggregatorlib)
 ==================
 
 Loggregatorlib includes packages and libraries used by loggregator.
