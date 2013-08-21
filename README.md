@@ -23,4 +23,16 @@ Running Tests:
 ------------------
 
    go get ./...
-   go test -v ./...
+   go test -i --race ./...
+   go test -v --race ./...
+
+
+Components
+------------------
+
+*   cfcomponent: Components used by Loggregator for use with CloudFoundry.
+*   emitter:  GO library to emit messages to the loggregator. For instructions see the emitter/README.
+*   loggregatorclient: A package used to send UDP messages. Used by Emitter and DEAagent.
+*   logmessage: The package for loggregator protobuffer messages.
+*   logtarget: LogTarget contains the id of an app that is the target of a logmessage
+*   testhelpers: Helpers for testing
