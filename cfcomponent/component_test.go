@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"runtime"
 	"testing"
+	"time"
 )
 
 type GoodHealthMonitor struct{}
@@ -25,14 +26,14 @@ func (hm BadHealthMonitor) Ok() bool {
 func TestGoodHealthzEndpoint(t *testing.T) {
 	component := &Component{
 		HealthMonitor:     GoodHealthMonitor{},
-		StatusPort:        7876,
+		StatusPort:        7877,
 		Type:              "loggregator",
 		StatusCredentials: []string{"user", "pass"},
 	}
 
-	component.StartMonitoringEndpoints()
+	go component.StartMonitoringEndpoints()
 
-	req, err := http.NewRequest("GET", "http://localhost:7876/healthz", nil)
+	req, err := http.NewRequest("GET", "http://localhost:7877/healthz", nil)
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 
@@ -46,14 +47,14 @@ func TestGoodHealthzEndpoint(t *testing.T) {
 func TestBadHealthzEndpoint(t *testing.T) {
 	component := &Component{
 		HealthMonitor:     BadHealthMonitor{},
-		StatusPort:        9876,
+		StatusPort:        9878,
 		Type:              "loggregator",
 		StatusCredentials: []string{"user", "pass"},
 	}
 
-	component.StartMonitoringEndpoints()
+	go component.StartMonitoringEndpoints()
 
-	req, err := http.NewRequest("GET", "http://localhost:9876/healthz", nil)
+	req, err := http.NewRequest("GET", "http://localhost:9878/healthz", nil)
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 
@@ -61,6 +62,32 @@ func TestBadHealthzEndpoint(t *testing.T) {
 	body, err := ioutil.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, string(body), "bad")
+}
+
+func TestPanicWhenFailingToMonitorEndpoints(t *testing.T) {
+	component := &Component{
+		HealthMonitor:     GoodHealthMonitor{},
+		StatusPort:        7879,
+		Type:              "loggregator",
+		StatusCredentials: []string{"user", "pass"},
+	}
+
+	finishChan := make(chan bool)
+
+	go func() {
+		err := component.StartMonitoringEndpoints()
+		assert.NoError(t, err)
+	}()
+	time.Sleep(50 * time.Millisecond)
+
+	go func() {
+		//Monitoring a second time should fail because the port is already in use.
+		err := component.StartMonitoringEndpoints()
+		assert.Error(t, err)
+		finishChan <- true
+	}()
+
+	<-finishChan
 }
 
 type testInstrumentable struct {
@@ -95,7 +122,7 @@ func TestVarzEndpoint(t *testing.T) {
 		},
 	}
 
-	component.StartMonitoringEndpoints()
+	go component.StartMonitoringEndpoints()
 
 	req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
 	resp, err := http.DefaultClient.Do(req)

@@ -44,11 +44,13 @@ func NewComponent(systemDomain string, webPort uint32, componentType string, ind
 	}, nil
 }
 
-func (c Component) StartMonitoringEndpoints() {
+func (c Component) StartMonitoringEndpoints() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", healthzHandlerFor(c))
 	mux.HandleFunc("/varz", varzHandlerFor(c))
-	go http.ListenAndServe(fmt.Sprintf("%s:%d", c.IpAddress, c.StatusPort), mux)
+
+	err := http.ListenAndServe(fmt.Sprintf("%s:%d", c.IpAddress, c.StatusPort), mux)
+	return err
 }
 
 func healthzHandlerFor(c Component) func(w http.ResponseWriter, req *http.Request) {
