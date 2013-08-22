@@ -9,14 +9,20 @@ import (
 	"time"
 )
 
-type emitter struct {
+type Emitter interface {
+	Emit(string, string)
+}
+
+type loggregatoremitter struct {
 	lc     loggregatorclient.LoggregatorClient
 	st     logmessage.LogMessage_SourceType
 	logger *gosteno.Logger
 }
 
-func (e *emitter) Emit(appid, message string) {
-	data, err := proto.Marshal(e.newLogMessage(appid, message))
+func (e *loggregatoremitter) Emit(appid, message string) {
+	logMessage := e.newLogMessage(appid, message)
+	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceType, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
+	data, err := proto.Marshal(logMessage)
 	if err != nil {
 		e.logger.Errorf("Error marshalling message: %s", err)
 		return
@@ -25,12 +31,12 @@ func (e *emitter) Emit(appid, message string) {
 	go e.lc.Send(data)
 }
 
-func NewEmitter(loggregatorServer, sourceType string, logger *gosteno.Logger) (e *emitter, err error) {
+func NewEmitter(loggregatorServer, sourceType string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
 	if logger == nil {
 		logger = gosteno.NewLogger("loggregatorlib.emitter")
 	}
 
-	e = new(emitter)
+	e = new(loggregatoremitter)
 
 	if name, ok := logmessage.LogMessage_SourceType_value[sourceType]; ok {
 		e.st = logmessage.LogMessage_SourceType(name)
@@ -45,7 +51,7 @@ func NewEmitter(loggregatorServer, sourceType string, logger *gosteno.Logger) (e
 	return
 }
 
-func (e *emitter) newLogMessage(appId, message string) *logmessage.LogMessage {
+func (e *loggregatoremitter) newLogMessage(appId, message string) *logmessage.LogMessage {
 	currentTime := time.Now()
 	mt := logmessage.LogMessage_OUT
 
