@@ -22,9 +22,14 @@ Setup
 Running Tests:
 ------------------
 
+    cd loggregatorlib
     go get ./...
     go test -i --race ./...
     go test -v --race ./...
+    
+Conform to `go vet`
+------------------
+    go vet ./...
 
 
 Components
