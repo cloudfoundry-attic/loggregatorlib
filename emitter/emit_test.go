@@ -32,7 +32,7 @@ func (m MockLoggregatorClient) IncLogStreamPbByteCount(uint64) {
 
 func TestEmitter(t *testing.T) {
 	received := make(chan *[]byte)
-	e,_ := NewEmitter("localhost:3456","ROUTER",nil)
+	e, _ := NewEmitter("localhost:3456", "ROUTER", nil)
 	e.lc = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedMessage := getBackendMessage(t, <-received)
