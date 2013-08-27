@@ -51,7 +51,7 @@ func (r *registrar) greetRouter(cfc *cfcomponent.Component) (err error) {
 			r.Infof("Greeted the router. Setting register interval to %v seconds\n", routerResponse.RegisterInterval)
 
 		}
-	case <-time.After(2 * time.Second):
+	case <-time.After(30 * time.Second):
 		err = errors.New("Did not get a response to router.greet!")
 	}
 
