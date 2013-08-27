@@ -96,7 +96,7 @@ type testInstrumentable struct {
 }
 
 func (t testInstrumentable) Emit() instrumentation.Context {
-	return instrumentation.Context{t.name, t.metrics}
+	return instrumentation.Context{Name: t.name, Metrics: t.metrics}
 }
 
 func TestVarzEndpoint(t *testing.T) {
@@ -109,14 +109,14 @@ func TestVarzEndpoint(t *testing.T) {
 			testInstrumentable{
 				"agentListener",
 				[]instrumentation.Metric{
-					instrumentation.Metric{"messagesReceived", 2004},
-					instrumentation.Metric{"queueLength", 5},
+					instrumentation.Metric{Name: "messagesReceived", Value: 2004},
+					instrumentation.Metric{Name: "queueLength", Value: 5},
 				},
 			},
 			testInstrumentable{
 				"cfSinkServer",
 				[]instrumentation.Metric{
-					instrumentation.Metric{"activeSinkCount", 3},
+					instrumentation.Metric{Name: "activeSinkCount", Value: 3},
 				},
 			},
 		},

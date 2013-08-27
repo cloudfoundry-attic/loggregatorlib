@@ -13,9 +13,7 @@ type MockLoggregatorClient struct {
 }
 
 func (m MockLoggregatorClient) Send(data []byte) {
-	go func() {
-		m.received <- &data
-	}()
+	m.received <- &data
 }
 
 func (m MockLoggregatorClient) Emit() instrumentation.Context {
@@ -31,7 +29,7 @@ func (m MockLoggregatorClient) IncLogStreamPbByteCount(uint64) {
 }
 
 func TestEmitter(t *testing.T) {
-	received := make(chan *[]byte)
+	received := make(chan *[]byte, 1)
 	e, _ := NewEmitter("localhost:3456", "ROUTER", nil)
 	e.lc = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")

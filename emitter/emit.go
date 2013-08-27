@@ -27,8 +27,7 @@ func (e *loggregatoremitter) Emit(appid, message string) {
 		e.logger.Errorf("Error marshalling message: %s", err)
 		return
 	}
-
-	go e.lc.Send(data)
+	e.lc.Send(data)
 }
 
 func NewEmitter(loggregatorServer, sourceType string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {

@@ -31,9 +31,14 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 		receivedByteCount: new(uint64), sentByteCount: new(uint64), logStreamRawByteCount: new(uint64),
 		logStreamPbByteCount: new(uint64)}
 
-	connection, err := net.Dial("udp", loggregatorAddress)
+	la, err := net.ResolveUDPAddr("udp", loggregatorAddress)
 	if err != nil {
 		logger.Fatalf("Error resolving loggregator address %s, %s", loggregatorAddress, err)
+	}
+
+	connection, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		logger.Fatalf("Error opening listen on 127.0.0.1:0")
 	}
 
 	loggregatorClient.sendChannel = make(chan []byte, bufferSize)
@@ -42,7 +47,7 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 		for {
 			dataToSend := <-loggregatorClient.sendChannel
 			if len(dataToSend) > 0 {
-				writeCount, err := connection.Write(dataToSend)
+				writeCount, err := connection.WriteTo(dataToSend, la)
 				logger.Debugf("Wrote %d bytes to %s", writeCount, loggregatorAddress)
 				atomic.AddUint64(loggregatorClient.sentMessageCount, 1)
 				atomic.AddUint64(loggregatorClient.sentByteCount, uint64(writeCount))
@@ -65,15 +70,15 @@ func (loggregatorClient *udpLoggregatorClient) Send(data []byte) {
 }
 
 func (loggregatorClient *udpLoggregatorClient) Emit() instrumentation.Context {
-	return instrumentation.Context{"loggregatorClient",
-		[]instrumentation.Metric{
-			instrumentation.Metric{"currentBufferCount", uint64(len(loggregatorClient.sendChannel))},
-			instrumentation.Metric{"sentMessageCount", atomic.LoadUint64(loggregatorClient.sentMessageCount)},
-			instrumentation.Metric{"receivedMessageCount", atomic.LoadUint64(loggregatorClient.receivedMessageCount)},
-			instrumentation.Metric{"sentByteCount", atomic.LoadUint64(loggregatorClient.sentByteCount)},
-			instrumentation.Metric{"receivedByteCount", atomic.LoadUint64(loggregatorClient.receivedByteCount)},
-			instrumentation.Metric{"logStreamRawByteCount", atomic.LoadUint64(loggregatorClient.logStreamRawByteCount)},
-			instrumentation.Metric{"logStreamPbByteCount", atomic.LoadUint64(loggregatorClient.logStreamPbByteCount)},
+	return instrumentation.Context{Name: "loggregatorClient",
+		Metrics: []instrumentation.Metric{
+			instrumentation.Metric{Name: "currentBufferCount", Value: uint64(len(loggregatorClient.sendChannel))},
+			instrumentation.Metric{Name: "sentMessageCount", Value: atomic.LoadUint64(loggregatorClient.sentMessageCount)},
+			instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(loggregatorClient.receivedMessageCount)},
+			instrumentation.Metric{Name: "sentByteCount", Value: atomic.LoadUint64(loggregatorClient.sentByteCount)},
+			instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(loggregatorClient.receivedByteCount)},
+			instrumentation.Metric{Name: "logStreamRawByteCount", Value: atomic.LoadUint64(loggregatorClient.logStreamRawByteCount)},
+			instrumentation.Metric{Name: "logStreamPbByteCount", Value: atomic.LoadUint64(loggregatorClient.logStreamPbByteCount)},
 		},
 	}
 }
