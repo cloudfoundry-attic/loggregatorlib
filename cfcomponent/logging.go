@@ -28,7 +28,9 @@ func NewLogger(verbose bool, logFilePath, name string) *gosteno.Logger {
 		loggingConfig.Sinks[0] = gosteno.NewFileSink(logFilePath)
 	}
 	gosteno.Init(loggingConfig)
-	return gosteno.NewLogger(name)
+	logger := gosteno.NewLogger(name)
+	logger.Debugf("Component %s in debug mode!", name)
+	return logger
 }
 
 func DumpGoRoutine() {

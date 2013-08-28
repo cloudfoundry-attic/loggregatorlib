@@ -24,7 +24,6 @@ func (agentListener *agentListener) Start() chan []byte {
 	agentListener.Infof("Listening on port %s", agentListener.host)
 	if err != nil {
 		agentListener.Fatalf("Failed to listen on port. %s", err)
-		panic(err)
 	}
 
 	go func() {
