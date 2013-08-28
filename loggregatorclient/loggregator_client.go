@@ -36,9 +36,9 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 		logger.Fatalf("Error resolving loggregator address %s, %s", loggregatorAddress, err)
 	}
 
-	connection, err := net.ListenPacket("udp", "127.0.0.1:0")
+	connection, err := net.ListenPacket("udp", "")
 	if err != nil {
-		logger.Fatalf("Error opening listen on 127.0.0.1:0")
+		logger.Fatalf("Error opening udp stuff")
 	}
 
 	loggregatorClient.sendChannel = make(chan []byte, bufferSize)
@@ -48,12 +48,13 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 			dataToSend := <-loggregatorClient.sendChannel
 			if len(dataToSend) > 0 {
 				writeCount, err := connection.WriteTo(dataToSend, la)
+				if err != nil {
+					logger.Errorf("Writing to loggregator %s failed %s", loggregatorAddress, err)
+					continue
+				}
 				logger.Debugf("Wrote %d bytes to %s", writeCount, loggregatorAddress)
 				atomic.AddUint64(loggregatorClient.sentMessageCount, 1)
 				atomic.AddUint64(loggregatorClient.sentByteCount, uint64(writeCount))
-				if err != nil {
-					logger.Errorf("Writing to loggregator %s failed %s", loggregatorAddress, err)
-				}
 			} else {
 				logger.Debugf("Skipped writing of 0 byte message to %s", loggregatorAddress)
 			}
