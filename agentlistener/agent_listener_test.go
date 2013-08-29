@@ -33,11 +33,11 @@ func TestThatItListens(t *testing.T) {
 	assert.Equal(t, len(metrics), 3) //make sure all expected metrics are present
 	for _, metric := range metrics {
 		switch metric.Name {
-		case "127:0:0:1.currentBufferCount":
+		case "currentBufferCount":
 			assert.Equal(t, metric.Value, 0)
-		case "127:0:0:1.receivedMessageCount":
+		case "receivedMessageCount":
 			assert.Equal(t, metric.Value, uint64(2))
-		case "127:0:0:1.receivedByteCount":
+		case "receivedByteCount":
 			assert.Equal(t, metric.Value, uint64(19))
 		default:
 			t.Error("Got an invalid metric name: ", metric.Name)

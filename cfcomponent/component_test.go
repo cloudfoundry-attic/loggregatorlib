@@ -100,6 +100,7 @@ func (t testInstrumentable) Emit() instrumentation.Context {
 }
 
 func TestVarzEndpoint(t *testing.T) {
+	tags := map[string]interface{}{"tagName1": "tagValue1", "tagName2": "tagValue2"}
 	component := &Component{
 		HealthMonitor:     GoodHealthMonitor{},
 		StatusPort:        1234,
@@ -110,7 +111,7 @@ func TestVarzEndpoint(t *testing.T) {
 				"agentListener",
 				[]instrumentation.Metric{
 					instrumentation.Metric{Name: "messagesReceived", Value: 2004},
-					instrumentation.Metric{Name: "queueLength", Value: 5},
+					instrumentation.Metric{Name: "queueLength", Value: 5, Tags: tags},
 				},
 			},
 			testInstrumentable{
@@ -159,6 +160,10 @@ func TestVarzEndpoint(t *testing.T) {
 					map[string]interface{}{
 						"name":  "queueLength",
 						"value": 5,
+						"tags": map[string]interface{}{
+							"tagName1": "tagValue1",
+							"tagName2": "tagValue2",
+						},
 					},
 				},
 			},

@@ -34,20 +34,27 @@ func TestSend(t *testing.T) {
 	assert.Equal(t, len(metrics), 7) //make sure all expected metrics are present
 	for _, metric := range metrics {
 		switch metric.Name {
-		case "127:0:0:1.currentBufferCount":
+		case "currentBufferCount":
 			assert.Equal(t, metric.Value, uint64(0))
-		case "127:0:0:1.sentMessageCount":
+			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
+		case "sentMessageCount":
 			assert.Equal(t, metric.Value, uint64(1))
-		case "127:0:0:1.sentByteCount":
+			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
+		case "sentByteCount":
 			assert.Equal(t, metric.Value, uint64(21))
-		case "127:0:0:1.receivedMessageCount":
+			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
+		case "receivedMessageCount":
 			assert.Equal(t, metric.Value, uint64(1))
-		case "127:0:0:1.receivedByteCount":
+			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
+		case "receivedByteCount":
 			assert.Equal(t, metric.Value, uint64(21))
-		case "127:0:0:1.logStreamRawByteCount":
+			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
+		case "logStreamRawByteCount":
 			assert.Equal(t, metric.Value, uint64(len(expectedOutput)))
-		case "127:0:0:1.logStreamPbByteCount":
+			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
+		case "logStreamPbByteCount":
 			assert.Equal(t, metric.Value, uint64(len(expectedOutput)))
+			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
 		default:
 			t.Error("Got an invalid metric name: ", metric.Name)
 		}

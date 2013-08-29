@@ -4,7 +4,6 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
-	"strings"
 	"sync/atomic"
 )
 
@@ -54,13 +53,10 @@ func (agentListener *agentListener) Start() chan []byte {
 }
 
 func (agentListener *agentListener) metrics() []instrumentation.Metric {
-	addPrefix := func(name string) string {
-		return strings.Replace(strings.Split(agentListener.host, ":")[0], ".", ":", -1) + "." + name
-	}
 	return []instrumentation.Metric{
-		instrumentation.Metric{Name: addPrefix("currentBufferCount"), Value: len(agentListener.dataChannel)},
-		instrumentation.Metric{Name: addPrefix("receivedMessageCount"), Value: atomic.LoadUint64(agentListener.receivedMessageCount)},
-		instrumentation.Metric{Name: addPrefix("receivedByteCount"), Value: atomic.LoadUint64(agentListener.receivedByteCount)},
+		instrumentation.Metric{Name: "currentBufferCount", Value: len(agentListener.dataChannel)},
+		instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(agentListener.receivedMessageCount)},
+		instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(agentListener.receivedByteCount)},
 	}
 }
 

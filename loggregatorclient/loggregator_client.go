@@ -4,7 +4,6 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
-	"strings"
 	"sync/atomic"
 )
 
@@ -43,7 +42,7 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 		logger.Fatalf("Error opening udp stuff")
 	}
 
-	loggregatorClient.loggregatorAddress = strings.Replace(strings.Split(loggregatorAddress, ":")[0], ".", ":", -1)
+	loggregatorClient.loggregatorAddress = la.IP.String()
 	loggregatorClient.sendChannel = make(chan []byte, bufferSize)
 
 	go func() {
@@ -74,17 +73,15 @@ func (loggregatorClient *udpLoggregatorClient) Send(data []byte) {
 }
 
 func (loggregatorClient *udpLoggregatorClient) metrics() []instrumentation.Metric {
-	addPrefix := func(name string) string {
-		return loggregatorClient.loggregatorAddress + "." + name
-	}
+	tags := map[string]interface{}{"loggregatorAddress": loggregatorClient.loggregatorAddress}
 	return []instrumentation.Metric{
-		instrumentation.Metric{Name: addPrefix("currentBufferCount"), Value: uint64(len(loggregatorClient.sendChannel))},
-		instrumentation.Metric{Name: addPrefix("sentMessageCount"), Value: atomic.LoadUint64(loggregatorClient.sentMessageCount)},
-		instrumentation.Metric{Name: addPrefix("receivedMessageCount"), Value: atomic.LoadUint64(loggregatorClient.receivedMessageCount)},
-		instrumentation.Metric{Name: addPrefix("sentByteCount"), Value: atomic.LoadUint64(loggregatorClient.sentByteCount)},
-		instrumentation.Metric{Name: addPrefix("receivedByteCount"), Value: atomic.LoadUint64(loggregatorClient.receivedByteCount)},
-		instrumentation.Metric{Name: addPrefix("logStreamRawByteCount"), Value: atomic.LoadUint64(loggregatorClient.logStreamRawByteCount)},
-		instrumentation.Metric{Name: addPrefix("logStreamPbByteCount"), Value: atomic.LoadUint64(loggregatorClient.logStreamPbByteCount)},
+		instrumentation.Metric{Name: "currentBufferCount", Value: uint64(len(loggregatorClient.sendChannel)), Tags: tags},
+		instrumentation.Metric{Name: "sentMessageCount", Value: atomic.LoadUint64(loggregatorClient.sentMessageCount), Tags: tags},
+		instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(loggregatorClient.receivedMessageCount), Tags: tags},
+		instrumentation.Metric{Name: "sentByteCount", Value: atomic.LoadUint64(loggregatorClient.sentByteCount), Tags: tags},
+		instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(loggregatorClient.receivedByteCount), Tags: tags},
+		instrumentation.Metric{Name: "logStreamRawByteCount", Value: atomic.LoadUint64(loggregatorClient.logStreamRawByteCount), Tags: tags},
+		instrumentation.Metric{Name: "logStreamPbByteCount", Value: atomic.LoadUint64(loggregatorClient.logStreamPbByteCount), Tags: tags},
 	}
 }
 
