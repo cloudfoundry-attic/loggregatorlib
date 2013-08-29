@@ -4,8 +4,14 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
+	"strings"
 	"sync/atomic"
 )
+
+type AgentListener interface {
+	instrumentation.Instrumentable
+	Start() chan []byte
+}
 
 type agentListener struct {
 	*gosteno.Logger
@@ -15,7 +21,7 @@ type agentListener struct {
 	dataChannel          chan []byte
 }
 
-func NewAgentListener(host string, givenLogger *gosteno.Logger) *agentListener {
+func NewAgentListener(host string, givenLogger *gosteno.Logger) AgentListener {
 	return &agentListener{givenLogger, host, new(uint64), new(uint64), make(chan []byte, 1024)}
 }
 
@@ -47,12 +53,19 @@ func (agentListener *agentListener) Start() chan []byte {
 	return agentListener.dataChannel
 }
 
+func (agentListener *agentListener) Metrics() []instrumentation.Metric {
+	addPrefix := func(name string) string {
+		return strings.Replace(strings.Split(agentListener.host, ":")[0], ".", ":", -1) + "." + name
+	}
+	return []instrumentation.Metric{
+		instrumentation.Metric{Name: addPrefix("currentBufferCount"), Value: len(agentListener.dataChannel)},
+		instrumentation.Metric{Name: addPrefix("receivedMessageCount"), Value: atomic.LoadUint64(agentListener.receivedMessageCount)},
+		instrumentation.Metric{Name: addPrefix("receivedByteCount"), Value: atomic.LoadUint64(agentListener.receivedByteCount)},
+	}
+}
+
 func (agentListener *agentListener) Emit() instrumentation.Context {
 	return instrumentation.Context{Name: "agentListener",
-		Metrics: []instrumentation.Metric{
-			instrumentation.Metric{Name: "currentBufferCount", Value: len(agentListener.dataChannel)},
-			instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(agentListener.receivedMessageCount)},
-			instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(agentListener.receivedByteCount)},
-		},
+		Metrics: agentListener.Metrics(),
 	}
 }

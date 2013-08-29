@@ -10,7 +10,7 @@ import (
 func TestSend(t *testing.T) {
 	bufferSize := 4096
 	expectedOutput := []byte("Important Testmessage")
-	loggregatorClient := NewLoggregatorClient("localhost:9876", gosteno.NewLogger("TestLogger"), bufferSize)
+	loggregatorClient := NewLoggregatorClient("127.0.0.1:9876", gosteno.NewLogger("TestLogger"), bufferSize)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", "localhost:9876")
 	assert.NoError(t, err)
@@ -34,19 +34,19 @@ func TestSend(t *testing.T) {
 	assert.Equal(t, len(metrics), 7) //make sure all expected metrics are present
 	for _, metric := range metrics {
 		switch metric.Name {
-		case "currentBufferCount":
+		case "127:0:0:1.currentBufferCount":
 			assert.Equal(t, metric.Value, uint64(0))
-		case "sentMessageCount":
+		case "127:0:0:1.sentMessageCount":
 			assert.Equal(t, metric.Value, uint64(1))
-		case "sentByteCount":
+		case "127:0:0:1.sentByteCount":
 			assert.Equal(t, metric.Value, uint64(21))
-		case "receivedMessageCount":
+		case "127:0:0:1.receivedMessageCount":
 			assert.Equal(t, metric.Value, uint64(1))
-		case "receivedByteCount":
+		case "127:0:0:1.receivedByteCount":
 			assert.Equal(t, metric.Value, uint64(21))
-		case "logStreamRawByteCount":
+		case "127:0:0:1.logStreamRawByteCount":
 			assert.Equal(t, metric.Value, uint64(len(expectedOutput)))
-		case "logStreamPbByteCount":
+		case "127:0:0:1.logStreamPbByteCount":
 			assert.Equal(t, metric.Value, uint64(len(expectedOutput)))
 		default:
 			t.Error("Got an invalid metric name: ", metric.Name)

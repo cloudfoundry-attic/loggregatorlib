@@ -7,15 +7,10 @@ import (
 	"testing"
 )
 
-var listener *agentListener
-var dataChannel chan []byte
-
-func init() {
-	listener = NewAgentListener("localhost:3456", gosteno.NewLogger("TestLogger"))
-	dataChannel = listener.Start()
-}
-
 func TestThatItListens(t *testing.T) {
+
+	listener := NewAgentListener("127.0.0.1:3456", gosteno.NewLogger("TestLogger"))
+	dataChannel := listener.Start()
 
 	expectedData := "Some Data"
 	otherData := "More stuff"
@@ -33,4 +28,19 @@ func TestThatItListens(t *testing.T) {
 
 	receivedAgain := <-dataChannel
 	assert.Equal(t, otherData, string(receivedAgain))
+
+	metrics := listener.Emit().Metrics
+	assert.Equal(t, len(metrics), 3) //make sure all expected metrics are present
+	for _, metric := range metrics {
+		switch metric.Name {
+		case "127:0:0:1.currentBufferCount":
+			assert.Equal(t, metric.Value, 0)
+		case "127:0:0:1.receivedMessageCount":
+			assert.Equal(t, metric.Value, uint64(2))
+		case "127:0:0:1.receivedByteCount":
+			assert.Equal(t, metric.Value, uint64(19))
+		default:
+			t.Error("Got an invalid metric name: ", metric.Name)
+		}
+	}
 }

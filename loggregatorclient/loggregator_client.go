@@ -4,6 +4,7 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
+	"strings"
 	"sync/atomic"
 )
 
@@ -24,6 +25,7 @@ type udpLoggregatorClient struct {
 	logStreamRawByteCount *uint64
 	logStreamPbByteCount  *uint64
 	sendChannel           chan []byte
+	loggregatorAddress    string
 }
 
 func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, bufferSize int) LoggregatorClient {
@@ -41,6 +43,7 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 		logger.Fatalf("Error opening udp stuff")
 	}
 
+	loggregatorClient.loggregatorAddress = strings.Replace(strings.Split(loggregatorAddress, ":")[0], ".", ":", -1)
 	loggregatorClient.sendChannel = make(chan []byte, bufferSize)
 
 	go func() {
@@ -70,17 +73,24 @@ func (loggregatorClient *udpLoggregatorClient) Send(data []byte) {
 	loggregatorClient.sendChannel <- data
 }
 
+func (loggregatorClient *udpLoggregatorClient) Metrics() []instrumentation.Metric {
+	addPrefix := func(name string) string {
+		return loggregatorClient.loggregatorAddress + "." + name
+	}
+	return []instrumentation.Metric{
+		instrumentation.Metric{Name: addPrefix("currentBufferCount"), Value: uint64(len(loggregatorClient.sendChannel))},
+		instrumentation.Metric{Name: addPrefix("sentMessageCount"), Value: atomic.LoadUint64(loggregatorClient.sentMessageCount)},
+		instrumentation.Metric{Name: addPrefix("receivedMessageCount"), Value: atomic.LoadUint64(loggregatorClient.receivedMessageCount)},
+		instrumentation.Metric{Name: addPrefix("sentByteCount"), Value: atomic.LoadUint64(loggregatorClient.sentByteCount)},
+		instrumentation.Metric{Name: addPrefix("receivedByteCount"), Value: atomic.LoadUint64(loggregatorClient.receivedByteCount)},
+		instrumentation.Metric{Name: addPrefix("logStreamRawByteCount"), Value: atomic.LoadUint64(loggregatorClient.logStreamRawByteCount)},
+		instrumentation.Metric{Name: addPrefix("logStreamPbByteCount"), Value: atomic.LoadUint64(loggregatorClient.logStreamPbByteCount)},
+	}
+}
+
 func (loggregatorClient *udpLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{Name: "loggregatorClient",
-		Metrics: []instrumentation.Metric{
-			instrumentation.Metric{Name: "currentBufferCount", Value: uint64(len(loggregatorClient.sendChannel))},
-			instrumentation.Metric{Name: "sentMessageCount", Value: atomic.LoadUint64(loggregatorClient.sentMessageCount)},
-			instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(loggregatorClient.receivedMessageCount)},
-			instrumentation.Metric{Name: "sentByteCount", Value: atomic.LoadUint64(loggregatorClient.sentByteCount)},
-			instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(loggregatorClient.receivedByteCount)},
-			instrumentation.Metric{Name: "logStreamRawByteCount", Value: atomic.LoadUint64(loggregatorClient.logStreamRawByteCount)},
-			instrumentation.Metric{Name: "logStreamPbByteCount", Value: atomic.LoadUint64(loggregatorClient.logStreamPbByteCount)},
-		},
+		Metrics: loggregatorClient.Metrics(),
 	}
 }
 
