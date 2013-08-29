@@ -128,6 +128,9 @@ func TestVarzEndpoint(t *testing.T) {
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 
+	memStats := new(runtime.MemStats)
+	runtime.ReadMemStats(memStats)
+
 	assert.Equal(t, resp.StatusCode, 200)
 	assert.Equal(t, resp.Header.Get("Content-Type"), "application/json")
 	body, err := ioutil.ReadAll(resp.Body)
@@ -137,6 +140,14 @@ func TestVarzEndpoint(t *testing.T) {
 		"name":          "loggregator",
 		"numCPUS":       runtime.NumCPU(),
 		"numGoRoutines": runtime.NumGoroutine(),
+		"memoryStats": map[string]interface{}{
+			"numBytesAllocatedHeap":  int(memStats.HeapAlloc),
+			"numBytesAllocatedStack": int(memStats.StackInuse),
+			"numBytesAllocated":      int(memStats.Alloc),
+			"numMallocs":             int(memStats.Mallocs),
+			"numFrees":               int(memStats.Frees),
+			"lastGCPauseTimeNS":      int(memStats.PauseNs[(memStats.NumGC+255)%256]),
+		},
 		"contexts": []interface{}{
 			map[string]interface{}{
 				"name": "agentListener",
@@ -165,5 +176,10 @@ func TestVarzEndpoint(t *testing.T) {
 
 	var actualMap map[string]interface{}
 	json.Unmarshal(body, &actualMap)
-	assert.Equal(t, expected, actualMap)
+	assert.Equal(t, expected["contexts"], actualMap["contexts"])
+	assert.Equal(t, expected["name"], actualMap["name"])
+	assert.Equal(t, expected["numCPUS"], actualMap["numCPUS"])
+	assert.Equal(t, expected["numGoRoutines"], actualMap["numGoRoutines"])
+	assert.NotNil(t, actualMap["memoryStats"])
+	assert.NotEmpty(t, actualMap["memoryStats"])
 }

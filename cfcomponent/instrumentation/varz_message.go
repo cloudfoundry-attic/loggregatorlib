@@ -4,11 +4,30 @@ import (
 	"runtime"
 )
 
+type varzMemoryStats struct {
+	BytesAllocatedHeap       uint64 `json:"numBytesAllocatedHeap"`
+	BytesAllocatedStack      uint64 `json:"numBytesAllocatedStack"`
+	BytesAllocated           uint64 `json:"numBytesAllocated"`
+	NumMallocs               uint64 `json:"numMallocs"`
+	NumFrees                 uint64 `json:"numFrees"`
+	LastGCPauseTimeNS             uint64 `json:"lastGCPauseTimeNS"`
+}
+
+func mapMemStats(stats *runtime.MemStats) varzMemoryStats {
+	return varzMemoryStats{BytesAllocatedHeap: stats.HeapAlloc,
+		BytesAllocatedStack: stats.StackInuse,
+		BytesAllocated: stats.Alloc,
+		NumMallocs: stats.Mallocs,
+		NumFrees: stats.Frees,
+		LastGCPauseTimeNS: stats.PauseNs[(stats.NumGC+255)%256] }
+}
+
 type VarzMessage struct {
-	Name          string    `json:"name"`
-	NumCpus       int       `json:"numCPUS"`
-	NumGoRoutines int       `json:"numGoRoutines"`
-	Contexts      []Context `json:"contexts"`
+	Name          string    	  `json:"name"`
+	NumCpus       int       	  `json:"numCPUS"`
+	NumGoRoutines int       	  `json:"numGoRoutines"`
+	MemoryStats   varzMemoryStats `json:"memoryStats"`
+	Contexts      []Context 	  `json:"contexts"`
 }
 
 func NewVarzMessage(name string, instrumentables []Instrumentable) *VarzMessage {
@@ -16,5 +35,7 @@ func NewVarzMessage(name string, instrumentables []Instrumentable) *VarzMessage 
 	for i, instrumentable := range instrumentables {
 		contexts[i] = instrumentable.Emit()
 	}
-	return &VarzMessage{name, runtime.NumCPU(), runtime.NumGoroutine(), contexts}
+	memStats := new(runtime.MemStats)
+	runtime.ReadMemStats(memStats)
+	return &VarzMessage{name, runtime.NumCPU(), runtime.NumGoroutine(), mapMemStats(memStats), contexts}
 }
