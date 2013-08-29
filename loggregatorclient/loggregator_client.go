@@ -73,7 +73,7 @@ func (loggregatorClient *udpLoggregatorClient) Send(data []byte) {
 	loggregatorClient.sendChannel <- data
 }
 
-func (loggregatorClient *udpLoggregatorClient) Metrics() []instrumentation.Metric {
+func (loggregatorClient *udpLoggregatorClient) metrics() []instrumentation.Metric {
 	addPrefix := func(name string) string {
 		return loggregatorClient.loggregatorAddress + "." + name
 	}
@@ -90,7 +90,7 @@ func (loggregatorClient *udpLoggregatorClient) Metrics() []instrumentation.Metri
 
 func (loggregatorClient *udpLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{Name: "loggregatorClient",
-		Metrics: loggregatorClient.Metrics(),
+		Metrics: loggregatorClient.metrics(),
 	}
 }
 

@@ -95,10 +95,6 @@ type testInstrumentable struct {
 	metrics []instrumentation.Metric
 }
 
-func (t testInstrumentable) Metrics() []instrumentation.Metric {
-	return t.metrics
-}
-
 func (t testInstrumentable) Emit() instrumentation.Context {
 	return instrumentation.Context{Name: t.name, Metrics: t.metrics}
 }

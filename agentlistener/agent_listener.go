@@ -53,7 +53,7 @@ func (agentListener *agentListener) Start() chan []byte {
 	return agentListener.dataChannel
 }
 
-func (agentListener *agentListener) Metrics() []instrumentation.Metric {
+func (agentListener *agentListener) metrics() []instrumentation.Metric {
 	addPrefix := func(name string) string {
 		return strings.Replace(strings.Split(agentListener.host, ":")[0], ".", ":", -1) + "." + name
 	}
@@ -66,6 +66,6 @@ func (agentListener *agentListener) Metrics() []instrumentation.Metric {
 
 func (agentListener *agentListener) Emit() instrumentation.Context {
 	return instrumentation.Context{Name: "agentListener",
-		Metrics: agentListener.Metrics(),
+		Metrics: agentListener.metrics(),
 	}
 }
