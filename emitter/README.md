@@ -3,11 +3,11 @@ loggregatorlib/emitter
 
 This is a GO library to emit messages to the loggregator.
 
-Create a emitter with NewEmitter with the loggregator server hostname and port, source type, and an gosteno logger.
+Create a emitter with NewEmitter with the loggregator router hostname and port, source type, and an gosteno logger.
 
 Call Emit on the emitter with the application GUID and message strings.
 
-Valid source types are:
+### Valid source types are:
 
  	CLOUD_CONTROLLER
  	ROUTER
@@ -16,10 +16,11 @@ Valid source types are:
  	WARDEN_CONTAINER
 
 
-Sample Workflow
+###Sample Workflow
+
     import "github.com/cloudfoundry/loggregatorlib/emitter"
 
     func main() {
-        emitter, err := emitter.NewEmitter("localhost:38452", "ROUTER", gosteno.NewLogger("LoggregatorEmitter"))
+        emitter, err := emitter.NewEmitter("10.10.10.16:38452", "ROUTER", gosteno.NewLogger("LoggregatorEmitter"))
         emitter.Emit(appId, message)
     }
