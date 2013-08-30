@@ -27,5 +27,6 @@ Call Emit on the emitter with the application GUID and message strings.
 
 ###TODO
 
-    By default all messages are annotated with a message type of OUT.
-    At this time, we don't support emitting messages with a message type of ERR.
+* By default all messages are annotated with a message type of OUT.
+* At this time, we don't support emitting messages with a message type of ERR.
+
