@@ -15,12 +15,17 @@ Call Emit on the emitter with the application GUID and message strings.
  	DEA
  	WARDEN_CONTAINER
 
-
 ###Sample Workflow
 
     import "github.com/cloudfoundry/loggregatorlib/emitter"
 
     func main() {
+        appGuid := "a8977cb6-3365-4be1-907e-0c878b3a4c6b" // The GUID(UUID) for the user's application
         emitter, err := emitter.NewEmitter("10.10.10.16:38452", "ROUTER", gosteno.NewLogger("LoggregatorEmitter"))
-        emitter.Emit(appId, message)
+        emitter.Emit(appGuid, message)
     }
+
+###TODO
+
+    By default all messages are annotated with a message type of OUT.
+    At this time, we don't support emitting messages with a message type of ERR.
