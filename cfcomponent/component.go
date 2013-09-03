@@ -11,7 +11,6 @@ import (
 type Component struct {
 	IpAddress         string
 	HealthMonitor     HealthMonitor
-	SystemDomain      string
 	WebPort           uint32
 	Type              string //Used by the collector to find data processing class
 	Index             uint
@@ -21,7 +20,7 @@ type Component struct {
 	Instrumentables   []instrumentation.Instrumentable
 }
 
-func NewComponent(systemDomain string, webPort uint32, componentType string, index uint, heathMonitor HealthMonitor, statusPort uint32, statusCreds []string, instrumentables []instrumentation.Instrumentable) (Component, error) {
+func NewComponent(webPort uint32, componentType string, index uint, heathMonitor HealthMonitor, statusPort uint32, statusCreds []string, instrumentables []instrumentation.Instrumentable) (Component, error) {
 	ip, err := localIP()
 	if err != nil {
 		return Component{}, err
@@ -29,7 +28,6 @@ func NewComponent(systemDomain string, webPort uint32, componentType string, ind
 
 	return Component{
 		IpAddress:         ip,
-		SystemDomain:      systemDomain,
 		WebPort:           webPort,
 		Type:              componentType,
 		Index:             index,
