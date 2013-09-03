@@ -12,6 +12,6 @@ packages=(
 for package in "${packages[@]}"
 do
     go list -f '{{range .TestImports}}{{.}}
-      {{end}}' $package | xargs go get
+      {{end}}' $package | xargs go get -v
 done
 
