@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/cloudfoundry/go_cfmessagebus/mock_cfmessagebus"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
-	"github.com/cloudfoundry/loggregatorlib/testhelpers"
+	testhelpers "github.com/cloudfoundry/loggregatorlib/lib_testhelpers"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

@@ -40,4 +40,4 @@ Components
 *   loggregatorclient: A package used to send UDP messages. Used by Emitter and DEAagent.
 *   logmessage: The package for loggregator protobuffer messages.
 *   logtarget: LogTarget contains the id of an app that is the target of a logmessage
-*   testhelpers: Helpers for testing
+*   lib_testhelpers: Helpers for testing
