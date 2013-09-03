@@ -2,6 +2,6 @@ language: go
 
 install:
   - go get -d -v ./...
-  - get_dependencies
+  - ./get_dependencies
 go:
   - 1.1.2
