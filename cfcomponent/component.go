@@ -6,17 +6,13 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
 	"net/http"
-	"sync"
-	"time"
 )
 
 type Component struct {
-	sync.RWMutex
 	IpAddress         string
 	HealthMonitor     HealthMonitor
 	SystemDomain      string
 	WebPort           uint32
-	RegisterInterval  time.Duration
 	Type              string //Used by the collector to find data processing class
 	Index             uint
 	UUID              string

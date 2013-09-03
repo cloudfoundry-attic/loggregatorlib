@@ -3,7 +3,6 @@ package routerregistrar
 import (
 	mbus "github.com/cloudfoundry/go_cfmessagebus"
 	"github.com/cloudfoundry/go_cfmessagebus/mock_cfmessagebus"
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 	testhelpers "github.com/cloudfoundry/loggregatorlib/lib_testhelpers"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -16,23 +15,22 @@ func TestGreetRouter(t *testing.T) {
 	routerReceivedChannel := make(chan []byte)
 	fakeRouter(mbus, routerReceivedChannel)
 
-	cfc := &cfcomponent.Component{SystemDomain: "vcap.me", WebPort: 8083}
 	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
-	err := registrar.greetRouter(cfc)
+	err := registrar.greetRouter()
 	assert.NoError(t, err)
 
 	resultChan := make(chan bool)
 	go func() {
 		for {
-			cfc.RLock()
-			if cfc.RegisterInterval == 42*time.Second {
+			registrar.lock.RLock()
+			if registrar.routerRegisterInterval == 42*time.Second {
 				resultChan <- true
+				registrar.lock.RUnlock()
 				break
 			}
-			cfc.RUnlock()
+			registrar.lock.RUnlock()
 			time.Sleep(5 * time.Millisecond)
 		}
-		cfc.RUnlock()
 	}()
 
 	select {
@@ -44,26 +42,25 @@ func TestGreetRouter(t *testing.T) {
 
 func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
 	mbus := mock_cfmessagebus.NewMockMessageBus()
-	cfc := &cfcomponent.Component{SystemDomain: "vcap.me", WebPort: 8083}
 	routerReceivedChannel := make(chan []byte)
 	fakeBrokenGreeterRouter(mbus, routerReceivedChannel)
 
 	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
-	err := registrar.greetRouter(cfc)
+	err := registrar.greetRouter()
 	assert.Error(t, err)
 
 	resultChan := make(chan bool)
 	go func() {
 		for {
-			cfc.RLock()
-			if cfc.RegisterInterval == 20*time.Second {
+			registrar.lock.RLock()
+			if registrar.routerRegisterInterval == 20*time.Second {
 				resultChan <- true
+				registrar.lock.RUnlock()
 				break
 			}
-			cfc.RUnlock()
+			registrar.lock.RUnlock()
 			time.Sleep(5 * time.Millisecond)
 		}
-		cfc.RUnlock()
 	}()
 
 	select {
@@ -75,23 +72,22 @@ func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
 
 func TestDefaultIntervalIsSetWhenGreetWithoutRouter(t *testing.T) {
 	mbus := mock_cfmessagebus.NewMockMessageBus()
-	cfc := &cfcomponent.Component{SystemDomain: "vcap.me", WebPort: 8083}
 	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
-	err := registrar.greetRouter(cfc)
+	err := registrar.greetRouter()
 	assert.Error(t, err)
 
 	resultChan := make(chan bool)
 	go func() {
 		for {
-			cfc.RLock()
-			if cfc.RegisterInterval == 20*time.Second {
+			registrar.lock.RLock()
+			if registrar.routerRegisterInterval == 20*time.Second {
 				resultChan <- true
+				registrar.lock.RUnlock()
 				break
 			}
-			cfc.RUnlock()
+			registrar.lock.RUnlock()
 			time.Sleep(5 * time.Millisecond)
 		}
-		cfc.RUnlock()
 	}()
 
 	select {
@@ -107,16 +103,15 @@ func TestKeepRegisteringWithRouter(t *testing.T) {
 	routerReceivedChannel := make(chan []byte)
 	fakeRouter(mbus, routerReceivedChannel)
 
-	cfc := cfcomponent.Component{SystemDomain: "vcap.me", WebPort: 8083, IpAddress: "13.12.14.15"}
 	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
-	cfc.RegisterInterval = 50 * time.Millisecond
-	registrar.keepRegisteringWithRouter(cfc)
+	registrar.routerRegisterInterval = 50 * time.Millisecond
+	registrar.keepRegisteringWithRouter("13.12.14.15", 8083, []string{"foobar.vcap.me"})
 
 	for i := 0; i < 3; i++ {
 		time.Sleep(55 * time.Millisecond)
 		select {
 		case msg := <-routerReceivedChannel:
-			assert.Equal(t, `registering:{"host":"13.12.14.15","port":8083,"uris":["loggregator.vcap.me"]}`, string(msg))
+			assert.Equal(t, `registering:{"host":"13.12.14.15","port":8083,"uris":["foobar.vcap.me"]}`, string(msg))
 		default:
 			t.Error("Router did not receive a router.register in time!")
 		}
@@ -125,9 +120,8 @@ func TestKeepRegisteringWithRouter(t *testing.T) {
 
 func TestSubscribeToRouterStart(t *testing.T) {
 	mbus := mock_cfmessagebus.NewMockMessageBus()
-	cfc := &cfcomponent.Component{SystemDomain: "vcap.me", WebPort: 8083}
 	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
-	registrar.subscribeToRouterStart(cfc)
+	registrar.subscribeToRouterStart()
 
 	err := mbus.Publish("router.start", []byte(messageFromRouter))
 	assert.NoError(t, err)
@@ -135,15 +129,15 @@ func TestSubscribeToRouterStart(t *testing.T) {
 	resultChan := make(chan bool)
 	go func() {
 		for {
-			cfc.RLock()
-			if cfc.RegisterInterval == 42*time.Second {
+			registrar.lock.RLock()
+			if registrar.routerRegisterInterval == 42*time.Second {
 				resultChan <- true
+				registrar.lock.RUnlock()
 				break
 			}
-			cfc.RUnlock()
+			registrar.lock.RUnlock()
 			time.Sleep(5 * time.Millisecond)
 		}
-		cfc.RUnlock()
 	}()
 
 	select {
@@ -158,14 +152,13 @@ func TestUnregisterFromRouter(t *testing.T) {
 	routerReceivedChannel := make(chan []byte)
 	fakeRouter(mbus, routerReceivedChannel)
 
-	cfc := cfcomponent.Component{SystemDomain: "vcap.me", WebPort: 8083, IpAddress: "13.12.14.15"}
 	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
-	registrar.UnregisterFromRouter(cfc)
+	registrar.UnregisterFromRouter("13.12.14.15", 8083, []string{"foobar.vcap.me"})
 
 	select {
 	case msg := <-routerReceivedChannel:
 		host := "13.12.14.15"
-		assert.Equal(t, `unregistering:{"host":"`+host+`","port":8083,"uris":["loggregator.vcap.me"]}`, string(msg))
+		assert.Equal(t, `unregistering:{"host":"`+host+`","port":8083,"uris":["foobar.vcap.me"]}`, string(msg))
 	case <-time.After(2 * time.Second):
 		t.Error("Router did not receive a router.unregister in time!")
 	}

@@ -6,33 +6,33 @@ import (
 	"fmt"
 	mbus "github.com/cloudfoundry/go_cfmessagebus"
 	"github.com/cloudfoundry/gosteno"
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 	"time"
+	"sync"
 )
-
-const loggregatorHostname = "loggregator"
 
 type registrar struct {
 	*gosteno.Logger
 	mBusClient mbus.MessageBus
+	routerRegisterInterval	time.Duration
+	lock sync.RWMutex
 }
 
 func NewRouterRegistrar(mBusClient mbus.MessageBus, logger *gosteno.Logger) *registrar {
 	return &registrar{mBusClient: mBusClient, Logger: logger}
 }
 
-func (r *registrar) RegisterWithRouter(cfc *cfcomponent.Component) error {
-	r.subscribeToRouterStart(cfc)
-	err := r.greetRouter(cfc)
+func (r *registrar) RegisterWithRouter(hostname string, port uint32, uris []string) error {
+	r.subscribeToRouterStart()
+	err := r.greetRouter()
 	if err != nil {
 		return err
 	}
-	r.keepRegisteringWithRouter(*cfc)
+	r.keepRegisteringWithRouter(hostname, port, uris)
 
 	return nil
 }
 
-func (r *registrar) greetRouter(cfc *cfcomponent.Component) (err error) {
+func (r *registrar) greetRouter() (err error) {
 	response := make(chan []byte)
 
 	r.mBusClient.Request(RouterGreetMessageSubject, []byte{}, func(payload []byte) {
@@ -55,24 +55,24 @@ func (r *registrar) greetRouter(cfc *cfcomponent.Component) (err error) {
 		err = errors.New("Did not get a response to router.greet!")
 	}
 
-	cfc.Lock()
-	cfc.RegisterInterval = routerRegisterInterval
-	cfc.Unlock()
+	r.lock.Lock()
+	r.routerRegisterInterval = routerRegisterInterval
+	r.lock.Unlock()
 
 	return err
 }
 
-func (r *registrar) subscribeToRouterStart(cfc *cfcomponent.Component) {
+func (r *registrar) subscribeToRouterStart() {
 	r.mBusClient.Subscribe(RouterStartMessageSubject, func(payload []byte) {
 		routerResponse := &RouterResponse{}
 		err := json.Unmarshal(payload, routerResponse)
 		if err != nil {
 			r.Errorf("Error unmarshalling the router start message: %v\n", err)
 		} else {
-			r.Infof("Received router.start. Setting register interval to %v seconds\n", cfc.RegisterInterval)
-			cfc.Lock()
-			cfc.RegisterInterval = routerResponse.RegisterInterval * time.Second
-			cfc.Unlock()
+			r.Infof("Received router.start. Setting register interval to %v seconds\n", routerResponse.RegisterInterval)
+			r.lock.Lock()
+			r.routerRegisterInterval = routerResponse.RegisterInterval * time.Second
+			r.lock.Unlock()
 		}
 	})
 	r.Info("Subscribed to router.start")
@@ -80,33 +80,32 @@ func (r *registrar) subscribeToRouterStart(cfc *cfcomponent.Component) {
 	return
 }
 
-func (r *registrar) keepRegisteringWithRouter(cfc cfcomponent.Component) {
+func (r *registrar) keepRegisteringWithRouter(hostname string, port uint32, uris []string) {
 	go func() {
 		for {
-			err := r.publishRouterMessage(cfc, RouterRegisterMessageSubject)
+			err := r.publishRouterMessage(hostname, port, uris, RouterRegisterMessageSubject)
 			if err != nil {
 				r.Error(err.Error())
 			}
 			r.Debug("Reregistered with router")
-			<-time.After(cfc.RegisterInterval)
+			<-time.After(r.routerRegisterInterval)
 		}
 	}()
 }
 
-func (r *registrar) UnregisterFromRouter(cfc cfcomponent.Component) {
-	err := r.publishRouterMessage(cfc, RouterUnregisterMessageSubject)
+func (r *registrar) UnregisterFromRouter(hostname string, port uint32, uris []string) {
+	err := r.publishRouterMessage(hostname, port, uris, RouterUnregisterMessageSubject)
 	if err != nil {
 		r.Error(err.Error())
 	}
 	r.Info("Unregistered from router")
 }
 
-func (r *registrar) publishRouterMessage(cfc cfcomponent.Component, subject string) error {
-	full_hostname := loggregatorHostname + "." + cfc.SystemDomain
+func (r *registrar) publishRouterMessage(hostname string, port uint32, uris []string, subject string) error {
 	message := &RouterMessage{
-		Host: cfc.IpAddress,
-		Port: cfc.WebPort,
-		Uris: []string{full_hostname},
+		Host: hostname,
+		Port: port,
+		Uris: uris,
 	}
 
 	json, err := json.Marshal(message)
