@@ -39,5 +39,5 @@ Components
 *   emitter:  GO library to emit messages to the loggregator. For instructions see the emitter/README.
 *   loggregatorclient: A package used to send UDP messages. Used by Emitter and DEAagent.
 *   logmessage: The package for loggregator protobuffer messages.
-*   logtarget: LogTarget contains the id of an app that is the target of a logmessage
+*   appid: Contains the id of an app that is the target of a logmessage
 *   lib_testhelpers: Helpers for testing
