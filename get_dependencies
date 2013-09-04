@@ -6,7 +6,8 @@ packages=(
     github.com/cloudfoundry/loggregatorlib/emitter
     github.com/cloudfoundry/loggregatorlib/loggregatorclient
     github.com/cloudfoundry/loggregatorlib/logmessage
-    github.com/cloudfoundry/loggregatorlib/appId
+    github.com/cloudfoundry/loggregatorlib/appid
+    github.com/cloudfoundry/loggregatorlib/servernamer
 )
 
 for package in "${packages[@]}"
