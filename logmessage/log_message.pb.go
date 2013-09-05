@@ -101,6 +101,7 @@ type LogMessage struct {
 	AppId            *string                 `protobuf:"bytes,4,opt,name=app_id" json:"app_id,omitempty"`
 	SourceType       *LogMessage_SourceType  `protobuf:"varint,5,req,name=source_type,enum=logmessage.LogMessage_SourceType" json:"source_type,omitempty"`
 	SourceId         *string                 `protobuf:"bytes,6,opt,name=source_id" json:"source_id,omitempty"`
+	DrainUrls        []string                `protobuf:"bytes,7,rep,name=drain_urls" json:"drain_urls,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
 }
 
@@ -148,6 +149,13 @@ func (m *LogMessage) GetSourceId() string {
 		return *m.SourceId
 	}
 	return ""
+}
+
+func (m *LogMessage) GetDrainUrls() []string {
+	if m != nil {
+		return m.DrainUrls
+	}
+	return nil
 }
 
 func init() {

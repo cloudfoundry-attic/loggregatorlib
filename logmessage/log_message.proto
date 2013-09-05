@@ -20,4 +20,5 @@ message LogMessage {
     optional string app_id = 4;
     required SourceType source_type = 5;
     optional string source_id = 6;
+    repeated string drain_urls = 7;
 }
