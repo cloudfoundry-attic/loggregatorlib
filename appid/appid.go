@@ -13,13 +13,13 @@ func FromUrl(u *url.URL) string {
 	return appId
 }
 
-func FromLogMessage(data []byte) (appId string, err error) {
+func FromLogMessage(data []byte) (appId string, drainUrls []string, err error) {
 	receivedMessage := &logmessage.LogMessage{}
 	err = proto.Unmarshal(data, receivedMessage)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Log message could not be unmarshaled. Dropping it... Error: %v. Data: %v", err, data))
-		return "", err
+		return "", make([]string, 0), err
 	}
 
-	return *receivedMessage.AppId, nil
+	return *receivedMessage.AppId, receivedMessage.GetDrainUrls(), nil
 }
