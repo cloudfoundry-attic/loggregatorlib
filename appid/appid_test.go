@@ -16,7 +16,7 @@ func TestFromUrl(t *testing.T) {
 
 func TestFromLogMessage(t *testing.T) {
 	message := testhelpers.MarshalledLogMessage(t, "message", "my_app_id")
-	appid, _, err := FromLogMessage(message)
+	appid, err := FromLogMessage(message)
 	assert.NoError(t, err)
 	assert.Equal(t, "my_app_id", appid)
 }
