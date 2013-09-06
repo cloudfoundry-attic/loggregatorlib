@@ -98,7 +98,7 @@ type LogMessage struct {
 	Message          []byte                  `protobuf:"bytes,1,req,name=message" json:"message,omitempty"`
 	MessageType      *LogMessage_MessageType `protobuf:"varint,2,req,name=message_type,enum=logmessage.LogMessage_MessageType" json:"message_type,omitempty"`
 	Timestamp        *int64                  `protobuf:"zigzag64,3,req,name=timestamp" json:"timestamp,omitempty"`
-	AppId            *string                 `protobuf:"bytes,4,opt,name=app_id" json:"app_id,omitempty"`
+	AppId            *string                 `protobuf:"bytes,4,req,name=app_id" json:"app_id,omitempty"`
 	SourceType       *LogMessage_SourceType  `protobuf:"varint,5,req,name=source_type,enum=logmessage.LogMessage_SourceType" json:"source_type,omitempty"`
 	SourceId         *string                 `protobuf:"bytes,6,opt,name=source_id" json:"source_id,omitempty"`
 	DrainUrls        []string                `protobuf:"bytes,7,rep,name=drain_urls" json:"drain_urls,omitempty"`
