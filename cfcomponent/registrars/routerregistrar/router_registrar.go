@@ -6,15 +6,15 @@ import (
 	"fmt"
 	mbus "github.com/cloudfoundry/go_cfmessagebus"
 	"github.com/cloudfoundry/gosteno"
-	"time"
 	"sync"
+	"time"
 )
 
 type registrar struct {
 	*gosteno.Logger
-	mBusClient mbus.MessageBus
-	routerRegisterInterval	time.Duration
-	lock sync.RWMutex
+	mBusClient             mbus.MessageBus
+	routerRegisterInterval time.Duration
+	lock                   sync.RWMutex
 }
 
 func NewRouterRegistrar(mBusClient mbus.MessageBus, logger *gosteno.Logger) *registrar {

@@ -149,6 +149,9 @@ func TestVarzEndpoint(t *testing.T) {
 			"numFrees":               int(memStats.Frees),
 			"lastGCPauseTimeNS":      int(memStats.PauseNs[(memStats.NumGC+255)%256]),
 		},
+		"tags": map[string]string{
+			"ip": "something",
+		},
 		"contexts": []interface{}{
 			map[string]interface{}{
 				"name": "agentListener",
@@ -181,6 +184,7 @@ func TestVarzEndpoint(t *testing.T) {
 
 	var actualMap map[string]interface{}
 	json.Unmarshal(body, &actualMap)
+	assert.NotNil(t, actualMap["tags"])
 	assert.Equal(t, expected["contexts"], actualMap["contexts"])
 	assert.Equal(t, expected["name"], actualMap["name"])
 	assert.Equal(t, expected["numCPUS"], actualMap["numCPUS"])

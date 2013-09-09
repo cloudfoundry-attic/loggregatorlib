@@ -1,12 +1,12 @@
 package lib_testhelpers
 
 import (
+	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
-	"github.com/stretchr/testify/assert"
-	"code.google.com/p/gogoprotobuf/proto"
 	"time"
 )
 
@@ -33,7 +33,6 @@ func getLogger(debug bool) *gosteno.Logger {
 	return gosteno.NewLogger("TestLogger")
 }
 
-
 func MarshalledLogMessage(t *testing.T, messageString string, appId string) []byte {
 	currentTime := time.Now()
 
@@ -42,10 +41,10 @@ func MarshalledLogMessage(t *testing.T, messageString string, appId string) []by
 	protoMessage := &logmessage.LogMessage{
 		Message:     []byte(messageString),
 		AppId:       proto.String(appId),
-			MessageType: &messageType,
-			SourceType:  &sourceType,
-			Timestamp:   proto.Int64(currentTime.UnixNano()),
-		}
+		MessageType: &messageType,
+		SourceType:  &sourceType,
+		Timestamp:   proto.Int64(currentTime.UnixNano()),
+	}
 
 	message, err := proto.Marshal(protoMessage)
 	assert.NoError(t, err)
