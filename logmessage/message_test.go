@@ -1,9 +1,9 @@
 package logmessage
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
 	"code.google.com/p/gogoprotobuf/proto"
+	"github.com/stretchr/testify/assert"
+	"testing"
 	"time"
 )
 
@@ -21,7 +21,7 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, unmarshalledMessage, message.GetLogMessage())
 }
 
-func NewMessage(messageString, appId string) *LogMessage{
+func NewMessage(messageString, appId string) *LogMessage {
 	currentTime := time.Now()
 
 	messageType := LogMessage_OUT
