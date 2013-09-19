@@ -16,6 +16,7 @@ type Emitter interface {
 type loggregatoremitter struct {
 	lc     loggregatorclient.LoggregatorClient
 	st     logmessage.LogMessage_SourceType
+	sId    string
 	logger *gosteno.Logger
 }
 
@@ -30,7 +31,7 @@ func (e *loggregatoremitter) Emit(appid, message string) {
 	e.lc.Send(data)
 }
 
-func NewEmitter(loggregatorServer, sourceType string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
+func NewEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
 	if logger == nil {
 		logger = gosteno.NewLogger("loggregatorlib.emitter")
 	}
@@ -46,6 +47,7 @@ func NewEmitter(loggregatorServer, sourceType string, logger *gosteno.Logger) (e
 
 	e.logger = logger
 	e.lc = loggregatorclient.NewLoggregatorClient(loggregatorServer, logger, loggregatorclient.DefaultBufferSize)
+	e.sId = sourceId
 
 	return
 }
@@ -59,6 +61,7 @@ func (e *loggregatoremitter) newLogMessage(appId, message string) *logmessage.Lo
 		AppId:       proto.String(appId),
 		MessageType: &mt,
 		SourceType:  &e.st,
+		SourceId:    &e.sId,
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
 	}
 }

@@ -30,21 +30,23 @@ func (m MockLoggregatorClient) IncLogStreamPbByteCount(uint64) {
 
 func TestEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := NewEmitter("localhost:3456", "ROUTER", nil)
+	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
 	e.lc = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedMessage := getBackendMessage(t, <-received)
+
 	assert.Equal(t, receivedMessage.GetMessage(), []byte("foo"))
 	assert.Equal(t, receivedMessage.GetAppId(), "appid")
+	assert.Equal(t, receivedMessage.GetSourceId(), "42")
 }
 
 func TestInvalidSourcetype(t *testing.T) {
-	_, err := NewEmitter("server", "FOOSERVER", nil)
+	_, err := NewEmitter("server", "FOOSERVER", "42", nil)
 	assert.Error(t, err)
 }
 
 func TestValidSourcetype(t *testing.T) {
-	_, err := NewEmitter("localhost:38452", "ROUTER", nil)
+	_, err := NewEmitter("localhost:38452", "ROUTER", "42", nil)
 	assert.NoError(t, err)
 }
 
