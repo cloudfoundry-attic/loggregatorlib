@@ -3,6 +3,7 @@ package cfcomponent
 import (
 	"encoding/json"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
+	"github.com/cloudfoundry/loggregatorlib/lib_testhelpers"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -23,8 +24,39 @@ func (hm BadHealthMonitor) Ok() bool {
 	return false
 }
 
+func TestIpAddressDefault(t *testing.T) {
+	component, err := NewComponent(lib_testhelpers.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "::", component.IpAddress)
+}
+
+func TestStatusPortDefault(t *testing.T) {
+	component, err := NewComponent(lib_testhelpers.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
+	assert.NoError(t, err)
+	assert.NotEqual(t, uint32(0), component.StatusPort)
+}
+
+func TestStatusCredentialsNil(t *testing.T) {
+	component, err := NewComponent(lib_testhelpers.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
+	assert.NoError(t, err)
+	credentials := component.StatusCredentials
+	assert.Equal(t, 2, len(credentials))
+	assert.NotEmpty(t, credentials[0])
+	assert.NotEmpty(t, credentials[1])
+}
+
+func TestStatusCredentialsDefault(t *testing.T) {
+	component, err := NewComponent(lib_testhelpers.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, []string{"", ""}, nil)
+	assert.NoError(t, err)
+	credentials := component.StatusCredentials
+	assert.Equal(t, 2, len(credentials))
+	assert.NotEmpty(t, credentials[0])
+	assert.NotEmpty(t, credentials[1])
+}
+
 func TestGoodHealthzEndpoint(t *testing.T) {
 	component := &Component{
+		Logger:            lib_testhelpers.Logger(),
 		HealthMonitor:     GoodHealthMonitor{},
 		StatusPort:        7877,
 		Type:              "loggregator",
@@ -46,6 +78,7 @@ func TestGoodHealthzEndpoint(t *testing.T) {
 
 func TestBadHealthzEndpoint(t *testing.T) {
 	component := &Component{
+		Logger:            lib_testhelpers.Logger(),
 		HealthMonitor:     BadHealthMonitor{},
 		StatusPort:        9878,
 		Type:              "loggregator",
@@ -66,6 +99,7 @@ func TestBadHealthzEndpoint(t *testing.T) {
 
 func TestPanicWhenFailingToMonitorEndpoints(t *testing.T) {
 	component := &Component{
+		Logger:            lib_testhelpers.Logger(),
 		HealthMonitor:     GoodHealthMonitor{},
 		StatusPort:        7879,
 		Type:              "loggregator",
@@ -102,6 +136,7 @@ func (t testInstrumentable) Emit() instrumentation.Context {
 func TestVarzEndpoint(t *testing.T) {
 	tags := map[string]interface{}{"tagName1": "tagValue1", "tagName2": "tagValue2"}
 	component := &Component{
+		Logger:            lib_testhelpers.Logger(),
 		HealthMonitor:     GoodHealthMonitor{},
 		StatusPort:        1234,
 		Type:              "loggregator",

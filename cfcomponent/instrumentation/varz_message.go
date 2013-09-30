@@ -40,7 +40,7 @@ func NewVarzMessage(name string, instrumentables []Instrumentable) (*VarzMessage
 	memStats := new(runtime.MemStats)
 	runtime.ReadMemStats(memStats)
 
-	ip, err := localip.LocalIP()
+	ip, _, err := localip.LocalIPAndPort()
 	if err != nil {
 		return &VarzMessage{}, err
 	}

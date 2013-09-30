@@ -19,10 +19,6 @@ type Config struct {
 }
 
 func (c *Config) Validate(logger *gosteno.Logger) (err error) {
-	if c.VarzPass == "" || c.VarzUser == "" || c.VarzPort == 0 {
-		return errors.New("Need VARZ username/password/port.")
-	}
-
 	c.MbusClient, err = cfmessagebus.NewMessageBus("NATS")
 	if err != nil {
 		return errors.New(fmt.Sprintf("Can not create message bus to NATS: %s", err))

@@ -16,14 +16,15 @@ func NewCollectorRegistrar(mBusClient mbus.MessageBus, logger *gosteno.Logger) *
 	return &collectorRegistrar{mBusClient: mBusClient, Logger: logger}
 }
 
-func (r *collectorRegistrar) RegisterWithCollector(cfc cfcomponent.Component) error {
+func (r collectorRegistrar) RegisterWithCollector(cfc cfcomponent.Component) error {
+	r.Debugf("Registering component %s with collect at ip: %s, port: %d, username: %s, password %s", cfc.UUID, cfc.IpAddress, cfc.StatusPort, cfc.StatusCredentials[0], cfc.StatusCredentials[1])
 	err := r.announceComponent(cfc)
 	r.subscribeToComponentDiscover(cfc)
 
 	return err
 }
 
-func (r *collectorRegistrar) announceComponent(cfc cfcomponent.Component) error {
+func (r collectorRegistrar) announceComponent(cfc cfcomponent.Component) error {
 	json, err := json.Marshal(NewAnnounceComponentMessage(cfc))
 	if err != nil {
 		return err
@@ -33,7 +34,7 @@ func (r *collectorRegistrar) announceComponent(cfc cfcomponent.Component) error 
 	return nil
 }
 
-func (r *collectorRegistrar) subscribeToComponentDiscover(cfc cfcomponent.Component) {
+func (r collectorRegistrar) subscribeToComponentDiscover(cfc cfcomponent.Component) {
 	r.mBusClient.RespondToChannel(DiscoverComponentMessageSubject, func(msg []byte) []byte {
 		json, err := json.Marshal(NewAnnounceComponentMessage(cfc))
 		if err != nil {
