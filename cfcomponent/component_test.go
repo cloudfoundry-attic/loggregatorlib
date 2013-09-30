@@ -27,7 +27,9 @@ func (hm BadHealthMonitor) Ok() bool {
 func TestIpAddressDefault(t *testing.T) {
 	component, err := NewComponent(lib_testhelpers.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, "0.0.0.0", component.IpAddress)
+	assert.NotEmpty(t, component.IpAddress)
+	assert.NotEqual(t, "0.0.0.0", component.IpAddress)
+	assert.NotEqual(t, "127.0.0.1", component.IpAddress)
 }
 
 func TestStatusPortDefault(t *testing.T) {

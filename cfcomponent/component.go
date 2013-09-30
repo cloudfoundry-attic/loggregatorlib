@@ -24,13 +24,18 @@ type Component struct {
 }
 
 func NewComponent(logger *gosteno.Logger, componentType string, index uint, heathMonitor HealthMonitor, statusPort uint32, statusCreds []string, instrumentables []instrumentation.Instrumentable) (Component, error) {
-	ip, port, err := localip.LocalIPAndPort()
+	ip, err := localip.LocalIP()
 	if err != nil {
 		return Component{}, err
 	}
+
 	if statusPort == 0 {
-		statusPort = port
+		statusPort, err = localip.LocalPort()
+		if err != nil {
+			return Component{}, err
+		}
 	}
+
 	if len(statusCreds) == 0 || statusCreds[0] == "" || statusCreds[1] == "" {
 		randUser := make([]byte, 42)
 		randPass := make([]byte, 42)
