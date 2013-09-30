@@ -4,7 +4,7 @@ import "net"
 import "strconv"
 
 func LocalIPAndPort() (string, uint32, error) {
-	l, err := net.Listen("tcp", "0.0.0.0:0")
+	l, err := net.Listen("tcp4", "0.0.0.0:0")
 	if err != nil {
 		return "", 0, err
 	}
