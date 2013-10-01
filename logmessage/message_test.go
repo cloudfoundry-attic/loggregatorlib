@@ -19,6 +19,7 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, uint32(33), message.GetRawMessageLength())
 	assert.Equal(t, marshalledMessage, message.GetRawMessage())
 	assert.Equal(t, unmarshalledMessage, message.GetLogMessage())
+	assert.Equal(t, "App", message.GetShortSourceTypeName())
 }
 
 func NewMessage(messageString, appId string) *LogMessage {

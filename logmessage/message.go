@@ -22,3 +22,15 @@ func (m *Message) GetRawMessage() []byte {
 func (m *Message) GetRawMessageLength() uint32 {
 	return m.rawMessageLength
 }
+
+func (m *Message) GetShortSourceTypeName() string {
+	sourceTypeNames := map[LogMessage_SourceType]string{
+		LogMessage_CLOUD_CONTROLLER: "API",
+		LogMessage_ROUTER:           "Router",
+		LogMessage_UAA:              "UAA",
+		LogMessage_DEA:              "Executor",
+		LogMessage_WARDEN_CONTAINER: "App",
+	}
+
+	return sourceTypeNames[m.logMessage.GetSourceType()]
+}
