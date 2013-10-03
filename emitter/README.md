@@ -3,7 +3,7 @@ loggregatorlib/emitter
 
 This is a GO library to emit messages to the loggregator.
 
-Create a emitter with NewEmitter with the loggregator router hostname and port, source type, and an gosteno logger.
+Create a emitter with NewEmitter with the loggregator trafficcontroller hostname and port, source type, and an gosteno logger.
 
 Call Emit on the emitter with the application GUID and message strings.
 
