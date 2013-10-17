@@ -6,6 +6,7 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
+	"strings"
 	"time"
 )
 
@@ -20,7 +21,14 @@ type loggregatoremitter struct {
 	logger *gosteno.Logger
 }
 
+func isEmpty(s string) bool {
+	return len(strings.TrimSpace(s)) == 0
+}
+
 func (e *loggregatoremitter) Emit(appid, message string) {
+	if isEmpty(appid) || isEmpty(message) {
+		return
+	}
 	logMessage := e.newLogMessage(appid, message)
 	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceType, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
 	data, err := proto.Marshal(logMessage)

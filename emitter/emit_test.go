@@ -50,6 +50,50 @@ func TestValidSourcetype(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestEmptyAppIdDoesNotEmit(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
+	e.lc = &MockLoggregatorClient{received}
+
+	e.Emit("", "foo")
+	select {
+	case <-received:
+		t.Error("This message should not have been emitted since it does not have an AppId")
+	default:
+		// success
+	}
+
+	e.Emit("    ", "foo")
+	select {
+	case <-received:
+		t.Error("This message should not have been emitted since it does not have an AppId")
+	default:
+		// success
+	}
+}
+
+func TestEmptyMessageDoesNotEmit(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
+	e.lc = &MockLoggregatorClient{received}
+
+	e.Emit("appId", "")
+	select {
+	case <-received:
+		t.Error("This message should not have been emitted since it does not have a message")
+	default:
+		// success
+	}
+
+	e.Emit("appId", "   ")
+	select {
+	case <-received:
+		t.Error("This message should not have been emitted since it does not have a message")
+	default:
+		// success
+	}
+}
+
 func getBackendMessage(t *testing.T, data *[]byte) *logmessage.LogMessage {
 	receivedMessage := &logmessage.LogMessage{}
 
