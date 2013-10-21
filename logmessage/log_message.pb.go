@@ -105,6 +105,7 @@ type LogMessage struct {
 	SourceType       *LogMessage_SourceType  `protobuf:"varint,5,req,name=source_type,enum=logmessage.LogMessage_SourceType" json:"source_type,omitempty"`
 	SourceId         *string                 `protobuf:"bytes,6,opt,name=source_id" json:"source_id,omitempty"`
 	DrainUrls        []string                `protobuf:"bytes,7,rep,name=drain_urls" json:"drain_urls,omitempty"`
+	SharedSecret     *string                 `protobuf:"bytes,8,opt,name=shared_secret" json:"shared_secret,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
 }
 
@@ -159,6 +160,13 @@ func (m *LogMessage) GetDrainUrls() []string {
 		return m.DrainUrls
 	}
 	return nil
+}
+
+func (m *LogMessage) GetSharedSecret() string {
+	if m != nil && m.SharedSecret != nil {
+		return *m.SharedSecret
+	}
+	return ""
 }
 
 func init() {
