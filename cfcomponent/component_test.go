@@ -141,7 +141,7 @@ func TestVarzEndpoint(t *testing.T) {
 		Logger:            lib_testhelpers.Logger(),
 		HealthMonitor:     GoodHealthMonitor{},
 		StatusPort:        1234,
-		IpAddress:	   "127.0.0.1",
+		IpAddress:         "127.0.0.1",
 		Type:              "loggregator",
 		StatusCredentials: []string{"user", "pass"},
 		Instrumentables: []instrumentation.Instrumentable{
