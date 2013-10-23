@@ -26,9 +26,9 @@ func (m *Message) GetRawMessageLength() uint32 {
 func (m *Message) GetShortSourceTypeName() string {
 	sourceTypeNames := map[LogMessage_SourceType]string{
 		LogMessage_CLOUD_CONTROLLER: "API",
-		LogMessage_ROUTER:           "Router",
+		LogMessage_ROUTER:           "RTR",
 		LogMessage_UAA:              "UAA",
-		LogMessage_DEA:              "Executor",
+		LogMessage_DEA:              "DEA",
 		LogMessage_WARDEN_CONTAINER: "App",
 	}
 
