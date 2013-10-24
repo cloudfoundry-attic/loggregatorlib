@@ -49,6 +49,7 @@ func TestLogEnvelopeEmitter(t *testing.T) {
 
 	assert.Equal(t, receivedEnvelope.GetLogMessage().GetMessage(), []byte("foo"))
 	assert.Equal(t, receivedEnvelope.GetLogMessage().GetAppId(), "appid")
+	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "appid")
 	assert.Equal(t, receivedEnvelope.GetLogMessage().GetSourceId(), "42")
 }
 

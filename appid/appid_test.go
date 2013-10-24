@@ -14,9 +14,16 @@ func TestFromUrl(t *testing.T) {
 	assert.Equal(t, "11bfecc7-7128-4e56-83a0-d8e0814ed7e6", appid)
 }
 
-func TestFromLogMessage(t *testing.T) {
+func TestFromLogMessageProtobuffer(t *testing.T) {
 	message := testhelpers.MarshalledLogMessage(t, "message", "my_app_id")
-	appid, err := FromLogMessage(message)
+	appid, err := FromProtobufferMessage(message)
+	assert.NoError(t, err)
+	assert.Equal(t, "my_app_id", appid)
+}
+
+func TestFromLogEnvelopeProtobuffer(t *testing.T) {
+	message := testhelpers.MarshalledLogEnvelope(t, "message", "my_app_id", "secret")
+	appid, err := FromProtobufferMessage(message)
 	assert.NoError(t, err)
 	assert.Equal(t, "my_app_id", appid)
 }
