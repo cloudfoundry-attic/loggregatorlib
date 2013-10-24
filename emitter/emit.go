@@ -6,6 +6,7 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
+	"github.com/cloudfoundry/loggregatorlib/signature"
 	"strings"
 	"time"
 )
@@ -15,10 +16,11 @@ type Emitter interface {
 }
 
 type loggregatoremitter struct {
-	lc     loggregatorclient.LoggregatorClient
-	st     logmessage.LogMessage_SourceType
-	sId    string
-	logger *gosteno.Logger
+	lc           loggregatorclient.LoggregatorClient
+	st           logmessage.LogMessage_SourceType
+	sId          string
+	sharedSecret string
+	logger       *gosteno.Logger
 }
 
 func isEmpty(s string) bool {
@@ -31,24 +33,40 @@ func (e *loggregatoremitter) Emit(appid, message string) {
 	}
 	logMessage := e.newLogMessage(appid, message)
 	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceType, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
-	data, err := proto.Marshal(logMessage)
+	marshalledLogMessage, err := proto.Marshal(logMessage)
 	if err != nil {
 		e.logger.Errorf("Error marshalling message: %s", err)
 		return
 	}
-	e.lc.Send(data)
+
+	logEnvelope := e.newLogEnvelope(appid, logMessage)
+	marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
+	if err != nil {
+		e.logger.Errorf("Error marshalling envelope: %s", err)
+		return
+	}
+	if e.sharedSecret == "" {
+		e.lc.Send(marshalledLogMessage)
+	} else {
+		e.lc.Send(marshalledLogEnvelope)
+	}
 }
 
-func NewEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
+func NewLogMessageEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
+	return NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, "", logger)
+}
+
+func NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, sharedSecret string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
 	if logger == nil {
 		logger = gosteno.NewLogger("loggregatorlib.emitter")
 	}
 
-	e = new(loggregatoremitter)
+	e = &loggregatoremitter{sharedSecret: sharedSecret}
 
 	if name, ok := logmessage.LogMessage_SourceType_value[sourceType]; ok {
 		e.st = logmessage.LogMessage_SourceType(name)
 	} else {
+
 		err = fmt.Errorf("Unable to map SourceType [%s] to a logmessage.LogMessage_SourceType", sourceType)
 		return
 	}
@@ -72,4 +90,17 @@ func (e *loggregatoremitter) newLogMessage(appId, message string) *logmessage.Lo
 		SourceId:    &e.sId,
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
 	}
+}
+
+func (e *loggregatoremitter) newLogEnvelope(appId string, message *logmessage.LogMessage) *logmessage.LogEnvelope {
+	return &logmessage.LogEnvelope{
+		LogMessage: message,
+		RoutingKey: proto.String(appId),
+		Signature:  e.sign(message),
+	}
+}
+
+func (e *loggregatoremitter) sign(logMessage *logmessage.LogMessage) []byte {
+	signatureOfMessage, _ := signature.Encrypt(e.sharedSecret, signature.Digest(logMessage.String()))
+	return signatureOfMessage
 }

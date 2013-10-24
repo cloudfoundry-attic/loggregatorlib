@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
+	"github.com/cloudfoundry/loggregatorlib/signature"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -28,73 +29,147 @@ func (m MockLoggregatorClient) IncLogStreamPbByteCount(uint64) {
 
 }
 
-func TestEmitter(t *testing.T) {
+func TestLogMessageEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
+	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
 	e.lc = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
-	receivedMessage := getBackendMessage(t, <-received)
+	receivedMessage := extractLogMessage(t, <-received)
 
 	assert.Equal(t, receivedMessage.GetMessage(), []byte("foo"))
 	assert.Equal(t, receivedMessage.GetAppId(), "appid")
 	assert.Equal(t, receivedMessage.GetSourceId(), "42")
 }
+func TestLogEnvelopeEmitter(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+	e.lc = &MockLoggregatorClient{received}
+	e.Emit("appid", "foo")
+	receivedEnvelope := extractLogEnvelope(t, <-received)
 
-func TestInvalidSourcetype(t *testing.T) {
-	_, err := NewEmitter("server", "FOOSERVER", "42", nil)
-	assert.Error(t, err)
+	assert.Equal(t, receivedEnvelope.GetLogMessage().GetMessage(), []byte("foo"))
+	assert.Equal(t, receivedEnvelope.GetLogMessage().GetAppId(), "appid")
+	assert.Equal(t, receivedEnvelope.GetLogMessage().GetSourceId(), "42")
 }
 
-func TestValidSourcetype(t *testing.T) {
-	_, err := NewEmitter("localhost:38452", "ROUTER", "42", nil)
+func TestLogEnvelopeValidRoutinKeyInTheEnvelope(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+	e.lc = &MockLoggregatorClient{received}
+	e.Emit("appid", "foo")
+	receivedEnvelope := extractLogEnvelope(t, <-received)
+
+	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "appid")
+}
+
+func TestLogEnvelopeSignatureInTheEnvelope(t *testing.T) {
+	sharedKey := "shared key"
+
+	received := make(chan *[]byte, 1)
+	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", sharedKey, nil)
+	e.lc = &MockLoggregatorClient{received}
+	e.Emit("appid", "foo")
+	receivedEnvelope := extractLogEnvelope(t, <-received)
+
+	expectedDigest := signature.Digest(receivedEnvelope.GetLogMessage().String())
+	extractedDigest, err := signature.Decrypt(sharedKey, receivedEnvelope.GetSignature())
 	assert.NoError(t, err)
+
+	assert.Equal(t, extractedDigest, expectedDigest)
 }
 
-func TestEmptyAppIdDoesNotEmit(t *testing.T) {
-	received := make(chan *[]byte, 1)
-	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
-	e.lc = &MockLoggregatorClient{received}
-
-	e.Emit("", "foo")
-	select {
-	case <-received:
-		t.Error("This message should not have been emitted since it does not have an AppId")
-	default:
-		// success
-	}
-
-	e.Emit("    ", "foo")
-	select {
-	case <-received:
-		t.Error("This message should not have been emitted since it does not have an AppId")
-	default:
-		// success
-	}
+var emitters = []func(bool) (*loggregatoremitter, error){
+	func(valid bool) (*loggregatoremitter, error) {
+		if valid {
+			return NewLogMessageEmitter("localhost:38452", "ROUTER", "42", nil)
+		} else {
+			return NewLogMessageEmitter("server", "FOOSERVER", "42", nil)
+		}
+	},
+	func(valid bool) (*loggregatoremitter, error) {
+		if valid {
+			return NewLogEnvelopeEmitter("localhost:38452", "ROUTER", "42", "secret", nil)
+		} else {
+			return NewLogEnvelopeEmitter("server", "FOOSERVER", "42", "secret", nil)
+		}
+	},
 }
 
-func TestEmptyMessageDoesNotEmit(t *testing.T) {
-	received := make(chan *[]byte, 1)
-	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
-	e.lc = &MockLoggregatorClient{received}
-
-	e.Emit("appId", "")
-	select {
-	case <-received:
-		t.Error("This message should not have been emitted since it does not have a message")
-	default:
-		// success
-	}
-
-	e.Emit("appId", "   ")
-	select {
-	case <-received:
-		t.Error("This message should not have been emitted since it does not have a message")
-	default:
-		// success
+func TestLogEnvelopeInvalidSourcetype(t *testing.T) {
+	for _, emitter := range emitters {
+		_, err := emitter(false)
+		assert.Error(t, err)
 	}
 }
 
-func getBackendMessage(t *testing.T, data *[]byte) *logmessage.LogMessage {
+func TestLogEnvelopeValidSourcetype(t *testing.T) {
+	for _, emitter := range emitters {
+		_, err := emitter(true)
+		assert.NoError(t, err)
+	}
+}
+
+func TestLogEnvelopeEmptyAppIdDoesNotEmit(t *testing.T) {
+	for _, emitter := range emitters {
+		received := make(chan *[]byte, 1)
+		e, _ := emitter(true)
+		e.lc = &MockLoggregatorClient{received}
+
+		e.Emit("", "foo")
+		select {
+		case <-received:
+			t.Error("This message should not have been emitted since it does not have an AppId")
+		default:
+			// success
+		}
+
+		e.Emit("    ", "foo")
+		select {
+		case <-received:
+			t.Error("This message should not have been emitted since it does not have an AppId")
+		default:
+			// success
+		}
+	}
+}
+
+func TestLogEnvelopeEmptyMessageDoesNotEmit(t *testing.T) {
+	for _, emitter := range emitters {
+
+		received := make(chan *[]byte, 1)
+		e, _ := emitter(true)
+		e.lc = &MockLoggregatorClient{received}
+
+		e.Emit("appId", "")
+		select {
+		case <-received:
+			t.Error("This message should not have been emitted since it does not have a message")
+		default:
+			// success
+		}
+
+		e.Emit("appId", "   ")
+		select {
+		case <-received:
+			t.Error("This message should not have been emitted since it does not have a message")
+		default:
+			// success
+		}
+	}
+}
+
+func extractLogEnvelope(t *testing.T, data *[]byte) *logmessage.LogEnvelope {
+	receivedEnvelope := &logmessage.LogEnvelope{}
+
+	err := proto.Unmarshal(*data, receivedEnvelope)
+
+	if err != nil {
+		t.Fatalf("Envelope invalid. %s", err)
+	}
+	return receivedEnvelope
+}
+
+func extractLogMessage(t *testing.T, data *[]byte) *logmessage.LogMessage {
 	receivedMessage := &logmessage.LogMessage{}
 
 	err := proto.Unmarshal(*data, receivedMessage)
