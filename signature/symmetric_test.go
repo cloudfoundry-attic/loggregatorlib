@@ -1,9 +1,8 @@
 package signature
 
-
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestSimpleEncryption(t *testing.T) {

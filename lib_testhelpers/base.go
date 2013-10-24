@@ -4,8 +4,8 @@ import (
 	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
-	"github.com/stretchr/testify/assert"
 	"github.com/cloudfoundry/loggregatorlib/signature"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 	"time"
@@ -35,7 +35,7 @@ func getLogger(debug bool) *gosteno.Logger {
 }
 
 func MarshalledLogMessage(t *testing.T, messageString string, appId string) []byte {
-	message := logMessage(t,messageString,appId)
+	message := logMessage(t, messageString, appId)
 
 	marshalledMessage, err := proto.Marshal(message)
 	assert.NoError(t, err)
@@ -44,7 +44,7 @@ func MarshalledLogMessage(t *testing.T, messageString string, appId string) []by
 }
 
 func MarshalledLogEnvelope(t *testing.T, messageString string, appId string, secret string) []byte {
-	message := logMessage(t,messageString,appId)
+	message := logMessage(t, messageString, appId)
 
 	signatureOfMessage, err := signature.Encrypt(secret, signature.Digest(message.String()))
 	assert.NoError(t, err)
@@ -60,7 +60,6 @@ func MarshalledLogEnvelope(t *testing.T, messageString string, appId string, sec
 
 	return marshalledEnvelope
 }
-
 
 func logMessage(t *testing.T, messageString string, appId string) *logmessage.LogMessage {
 	currentTime := time.Now()

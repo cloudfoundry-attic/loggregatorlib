@@ -6,9 +6,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha1"
 	"fmt"
 	"io"
-	"crypto/sha1"
 )
 
 const KeySize = 16
@@ -16,7 +16,7 @@ const KeySize = 16
 var (
 	ErrPadding       = fmt.Errorf("invalid padding")
 	ErrRandomFailure = fmt.Errorf("failed to read enough random data")
-	ErrInvalidIV = fmt.Errorf("invalid IV")
+	ErrInvalidIV     = fmt.Errorf("invalid IV")
 )
 
 func Decrypt(key string, encryptedMessage []byte) ([]byte, error) {
@@ -121,7 +121,7 @@ func unpadBuffer(paddedMessage []byte) ([]byte, error) {
 			break
 		}
 
-		if message[paddedMessageLen] != 0x0 || (origLen - paddedMessageLen) > aes.BlockSize {
+		if message[paddedMessageLen] != 0x0 || (origLen-paddedMessageLen) > aes.BlockSize {
 			err := ErrPadding
 			return nil, err
 		}
