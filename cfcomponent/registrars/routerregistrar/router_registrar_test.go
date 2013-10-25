@@ -3,7 +3,7 @@ package routerregistrar
 import (
 	mbus "github.com/cloudfoundry/go_cfmessagebus"
 	"github.com/cloudfoundry/go_cfmessagebus/mock_cfmessagebus"
-	testhelpers "github.com/cloudfoundry/loggregatorlib/lib_testhelpers"
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -15,7 +15,7 @@ func TestGreetRouter(t *testing.T) {
 	routerReceivedChannel := make(chan []byte)
 	fakeRouter(mbus, routerReceivedChannel)
 
-	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 	err := registrar.greetRouter()
 	assert.NoError(t, err)
 
@@ -45,7 +45,7 @@ func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
 	routerReceivedChannel := make(chan []byte)
 	fakeBrokenGreeterRouter(mbus, routerReceivedChannel)
 
-	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 	err := registrar.greetRouter()
 	assert.Error(t, err)
 
@@ -72,7 +72,7 @@ func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
 
 func TestDefaultIntervalIsSetWhenGreetWithoutRouter(t *testing.T) {
 	mbus := mock_cfmessagebus.NewMockMessageBus()
-	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 	err := registrar.greetRouter()
 	assert.Error(t, err)
 
@@ -103,7 +103,7 @@ func TestKeepRegisteringWithRouter(t *testing.T) {
 	routerReceivedChannel := make(chan []byte)
 	fakeRouter(mbus, routerReceivedChannel)
 
-	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 	registrar.routerRegisterInterval = 50 * time.Millisecond
 	registrar.keepRegisteringWithRouter("13.12.14.15", 8083, []string{"foobar.vcap.me"})
 
@@ -120,7 +120,7 @@ func TestKeepRegisteringWithRouter(t *testing.T) {
 
 func TestSubscribeToRouterStart(t *testing.T) {
 	mbus := mock_cfmessagebus.NewMockMessageBus()
-	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 	registrar.subscribeToRouterStart()
 
 	err := mbus.Publish("router.start", []byte(messageFromRouter))
@@ -152,7 +152,7 @@ func TestUnregisterFromRouter(t *testing.T) {
 	routerReceivedChannel := make(chan []byte)
 	fakeRouter(mbus, routerReceivedChannel)
 
-	registrar := NewRouterRegistrar(mbus, testhelpers.Logger())
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 	registrar.UnregisterFromRouter("13.12.14.15", 8083, []string{"foobar.vcap.me"})
 
 	select {

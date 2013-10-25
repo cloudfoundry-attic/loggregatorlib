@@ -2,37 +2,12 @@ package lib_testhelpers
 
 import (
 	"code.google.com/p/gogoprotobuf/proto"
-	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/cloudfoundry/loggregatorlib/signature"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"testing"
 	"time"
 )
-
-func Logger() *gosteno.Logger {
-	return getLogger(false)
-}
-
-func getLogger(debug bool) *gosteno.Logger {
-	if debug {
-		level := gosteno.LOG_DEBUG
-
-		loggingConfig := &gosteno.Config{
-			Sinks:     make([]gosteno.Sink, 1),
-			Level:     level,
-			Codec:     gosteno.NewJsonCodec(),
-			EnableLOC: true,
-		}
-
-		loggingConfig.Sinks[0] = gosteno.NewIOSink(os.Stdout)
-
-		gosteno.Init(loggingConfig)
-	}
-
-	return gosteno.NewLogger("TestLogger")
-}
 
 func MarshalledLogMessage(t *testing.T, messageString string, appId string) []byte {
 	message := NewLogMessage(t, messageString, appId)

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/cloudfoundry/go_cfmessagebus/mock_cfmessagebus"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
-	testhelpers "github.com/cloudfoundry/loggregatorlib/lib_testhelpers"
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -26,7 +26,7 @@ func TestAnnounceComponent(t *testing.T) {
 	}
 	mbus.Subscribe(AnnounceComponentMessageSubject, callback)
 
-	registrar := NewCollectorRegistrar(mbus, testhelpers.Logger())
+	registrar := NewCollectorRegistrar(mbus, loggertesthelper.Logger())
 
 	registrar.announceComponent(cfc)
 
@@ -56,7 +56,7 @@ func TestSubscribeToComponentDiscover(t *testing.T) {
 	}
 
 	mbus := mock_cfmessagebus.NewMockMessageBus()
-	registrar := NewCollectorRegistrar(mbus, testhelpers.Logger())
+	registrar := NewCollectorRegistrar(mbus, loggertesthelper.Logger())
 
 	registrar.subscribeToComponentDiscover(cfc)
 
