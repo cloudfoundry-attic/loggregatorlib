@@ -25,7 +25,7 @@ func (m MockLoggregatorClient) Emit() instrumentation.Context {
 func TestEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
-	e.lc = &MockLoggregatorClient{received}
+	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedMessage := extractLogMessage(t, <-received)
 
@@ -37,7 +37,7 @@ func TestEmit(t *testing.T) {
 func TestLogMessageEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
-	e.lc = &MockLoggregatorClient{received}
+	e.LoggregatorClient = &MockLoggregatorClient{received}
 
 	logMessage := testhelpers.NewLogMessage("test_msg", "test_app_id")
 	logMessage.SourceId = proto.String("src_id")
@@ -52,7 +52,7 @@ func TestLogMessageEmit(t *testing.T) {
 func TestLogEnvelopeEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
-	e.lc = &MockLoggregatorClient{received}
+	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedEnvelope := extractLogEnvelope(t, <-received)
 
@@ -65,7 +65,7 @@ func TestLogEnvelopeEmitter(t *testing.T) {
 func TestLogEnvelopeValidRoutinKeyInTheEnvelope(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
-	e.lc = &MockLoggregatorClient{received}
+	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedEnvelope := extractLogEnvelope(t, <-received)
 
@@ -77,7 +77,7 @@ func TestLogEnvelopeSignatureInTheEnvelope(t *testing.T) {
 
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", sharedKey, nil)
-	e.lc = &MockLoggregatorClient{received}
+	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedEnvelope := extractLogEnvelope(t, <-received)
 
@@ -123,7 +123,7 @@ func TestLogEnvelopeEmptyAppIdDoesNotEmit(t *testing.T) {
 	for _, emitter := range emitters {
 		received := make(chan *[]byte, 1)
 		e, _ := emitter(true)
-		e.lc = &MockLoggregatorClient{received}
+		e.LoggregatorClient = &MockLoggregatorClient{received}
 
 		e.Emit("", "foo")
 		select {
@@ -148,7 +148,7 @@ func TestLogEnvelopeEmptyMessageDoesNotEmit(t *testing.T) {
 
 		received := make(chan *[]byte, 1)
 		e, _ := emitter(true)
-		e.lc = &MockLoggregatorClient{received}
+		e.LoggregatorClient = &MockLoggregatorClient{received}
 
 		e.Emit("appId", "")
 		select {

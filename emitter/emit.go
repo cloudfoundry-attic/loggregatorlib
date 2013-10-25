@@ -13,14 +13,15 @@ import (
 
 type Emitter interface {
 	Emit(string, string)
+	EmitLogMessage(*logmessage.LogMessage)
 }
 
 type loggregatoremitter struct {
-	lc           loggregatorclient.LoggregatorClient
-	st           logmessage.LogMessage_SourceType
-	sId          string
-	sharedSecret string
-	logger       *gosteno.Logger
+	LoggregatorClient loggregatorclient.LoggregatorClient
+	st                logmessage.LogMessage_SourceType
+	sId               string
+	sharedSecret      string
+	logger            *gosteno.Logger
 }
 
 func isEmpty(s string) bool {
@@ -44,7 +45,7 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 			e.logger.Errorf("Error marshalling message: %s", err)
 			return
 		}
-		e.lc.Send(marshalledLogMessage)
+		e.LoggregatorClient.Send(marshalledLogMessage)
 	} else {
 		logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
 		marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
@@ -52,7 +53,7 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 			e.logger.Errorf("Error marshalling envelope: %s", err)
 			return
 		}
-		e.lc.Send(marshalledLogEnvelope)
+		e.LoggregatorClient.Send(marshalledLogEnvelope)
 	}
 }
 
@@ -76,7 +77,7 @@ func NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, sharedSecret
 	}
 
 	e.logger = logger
-	e.lc = loggregatorclient.NewLoggregatorClient(loggregatorServer, logger, loggregatorclient.DefaultBufferSize)
+	e.LoggregatorClient = loggregatorclient.NewLoggregatorClient(loggregatorServer, logger, loggregatorclient.DefaultBufferSize)
 	e.sId = sourceId
 
 	return
