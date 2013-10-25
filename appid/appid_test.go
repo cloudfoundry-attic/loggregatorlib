@@ -1,7 +1,7 @@
 package appid
 
 import (
-	testhelpers "github.com/cloudfoundry/loggregatorlib/lib_testhelpers"
+	testhelpers "github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"net/url"
 	"testing"
@@ -22,7 +22,8 @@ func TestFromLogMessageProtobuffer(t *testing.T) {
 }
 
 func TestFromLogEnvelopeProtobuffer(t *testing.T) {
-	message := testhelpers.MarshalledLogEnvelope(t, "message", "my_app_id", "secret")
+	logMessage := testhelpers.NewLogMessage("message", "my_app_id")
+	message := testhelpers.MarshalledLogEnvelope(t, logMessage, "secret")
 	appid, err := FromProtobufferMessage(message)
 	assert.NoError(t, err)
 	assert.Equal(t, "my_app_id", appid)
