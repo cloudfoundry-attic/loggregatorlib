@@ -33,21 +33,25 @@ func (e *loggregatoremitter) Emit(appid, message string) {
 	}
 	logMessage := e.newLogMessage(appid, message)
 	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceType, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
-	marshalledLogMessage, err := proto.Marshal(logMessage)
-	if err != nil {
-		e.logger.Errorf("Error marshalling message: %s", err)
-		return
-	}
 
-	logEnvelope := e.newLogEnvelope(appid, logMessage)
-	marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
-	if err != nil {
-		e.logger.Errorf("Error marshalling envelope: %s", err)
-		return
-	}
+	e.EmitLogMessage(logMessage)
+}
+
+func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 	if e.sharedSecret == "" {
+		marshalledLogMessage, err := proto.Marshal(logMessage)
+		if err != nil {
+			e.logger.Errorf("Error marshalling message: %s", err)
+			return
+		}
 		e.lc.Send(marshalledLogMessage)
 	} else {
+		logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
+		marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
+		if err != nil {
+			e.logger.Errorf("Error marshalling envelope: %s", err)
+			return
+		}
 		e.lc.Send(marshalledLogEnvelope)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
+	"github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
 	"github.com/cloudfoundry/loggregatorlib/signature"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -29,7 +30,7 @@ func (m MockLoggregatorClient) IncLogStreamPbByteCount(uint64) {
 
 }
 
-func TestLogMessageEmitter(t *testing.T) {
+func TestEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
 	e.lc = &MockLoggregatorClient{received}
@@ -40,6 +41,22 @@ func TestLogMessageEmitter(t *testing.T) {
 	assert.Equal(t, receivedMessage.GetAppId(), "appid")
 	assert.Equal(t, receivedMessage.GetSourceId(), "42")
 }
+
+func TestLogMessageEmit(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	e.lc = &MockLoggregatorClient{received}
+
+	logMessage := testhelpers.NewLogMessage("test_msg", "test_app_id")
+	logMessage.SourceId = proto.String("src_id")
+	e.EmitLogMessage(logMessage)
+	receivedMessage := extractLogMessage(t, <-received)
+
+	assert.Equal(t, receivedMessage.GetMessage(), []byte("test_msg"))
+	assert.Equal(t, receivedMessage.GetAppId(), "test_app_id")
+	assert.Equal(t, receivedMessage.GetSourceId(), "src_id")
+}
+
 func TestLogEnvelopeEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
