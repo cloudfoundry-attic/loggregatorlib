@@ -12,25 +12,20 @@ const DefaultBufferSize = 4096
 type LoggregatorClient interface {
 	instrumentation.Instrumentable
 	Send([]byte)
-	IncLogStreamRawByteCount(uint64)
-	IncLogStreamPbByteCount(uint64)
 }
 
 type udpLoggregatorClient struct {
-	receivedMessageCount  *uint64
-	sentMessageCount      *uint64
-	receivedByteCount     *uint64
-	sentByteCount         *uint64
-	logStreamRawByteCount *uint64
-	logStreamPbByteCount  *uint64
-	sendChannel           chan []byte
-	loggregatorAddress    string
+	receivedMessageCount *uint64
+	sentMessageCount     *uint64
+	receivedByteCount    *uint64
+	sentByteCount        *uint64
+	sendChannel          chan []byte
+	loggregatorAddress   string
 }
 
 func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, bufferSize int) LoggregatorClient {
 	loggregatorClient := &udpLoggregatorClient{receivedMessageCount: new(uint64), sentMessageCount: new(uint64),
-		receivedByteCount: new(uint64), sentByteCount: new(uint64), logStreamRawByteCount: new(uint64),
-		logStreamPbByteCount: new(uint64)}
+		receivedByteCount: new(uint64), sentByteCount: new(uint64)}
 
 	la, err := net.ResolveUDPAddr("udp", loggregatorAddress)
 	if err != nil {
@@ -80,8 +75,6 @@ func (loggregatorClient *udpLoggregatorClient) metrics() []instrumentation.Metri
 		instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(loggregatorClient.receivedMessageCount), Tags: tags},
 		instrumentation.Metric{Name: "sentByteCount", Value: atomic.LoadUint64(loggregatorClient.sentByteCount), Tags: tags},
 		instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(loggregatorClient.receivedByteCount), Tags: tags},
-		instrumentation.Metric{Name: "logStreamRawByteCount", Value: atomic.LoadUint64(loggregatorClient.logStreamRawByteCount), Tags: tags},
-		instrumentation.Metric{Name: "logStreamPbByteCount", Value: atomic.LoadUint64(loggregatorClient.logStreamPbByteCount), Tags: tags},
 	}
 }
 
@@ -89,12 +82,4 @@ func (loggregatorClient *udpLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{Name: "loggregatorClient",
 		Metrics: loggregatorClient.metrics(),
 	}
-}
-
-func (loggregatorClient *udpLoggregatorClient) IncLogStreamRawByteCount(count uint64) {
-	atomic.AddUint64(loggregatorClient.logStreamRawByteCount, count)
-}
-
-func (loggregatorClient *udpLoggregatorClient) IncLogStreamPbByteCount(count uint64) {
-	atomic.AddUint64(loggregatorClient.logStreamPbByteCount, count)
 }

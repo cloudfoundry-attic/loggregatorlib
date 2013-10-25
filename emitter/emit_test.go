@@ -22,14 +22,6 @@ func (m MockLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{}
 }
 
-func (m MockLoggregatorClient) IncLogStreamRawByteCount(uint64) {
-
-}
-
-func (m MockLoggregatorClient) IncLogStreamPbByteCount(uint64) {
-
-}
-
 func TestEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)

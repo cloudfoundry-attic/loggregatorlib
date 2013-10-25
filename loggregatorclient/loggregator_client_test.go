@@ -19,8 +19,6 @@ func TestSend(t *testing.T) {
 	defer udpListener.Close()
 	assert.NoError(t, err)
 
-	loggregatorClient.IncLogStreamRawByteCount(uint64(len(expectedOutput)))
-	loggregatorClient.IncLogStreamPbByteCount(uint64(len(expectedOutput)))
 	loggregatorClient.Send(expectedOutput)
 
 	buffer := make([]byte, bufferSize)
@@ -31,7 +29,7 @@ func TestSend(t *testing.T) {
 	assert.Equal(t, string(expectedOutput), received)
 
 	metrics := loggregatorClient.Emit().Metrics
-	assert.Equal(t, len(metrics), 7) //make sure all expected metrics are present
+	assert.Equal(t, len(metrics), 5) //make sure all expected metrics are present
 	for _, metric := range metrics {
 		switch metric.Name {
 		case "currentBufferCount":
@@ -48,12 +46,6 @@ func TestSend(t *testing.T) {
 			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
 		case "receivedByteCount":
 			assert.Equal(t, metric.Value, uint64(21))
-			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
-		case "logStreamRawByteCount":
-			assert.Equal(t, metric.Value, uint64(len(expectedOutput)))
-			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
-		case "logStreamPbByteCount":
-			assert.Equal(t, metric.Value, uint64(len(expectedOutput)))
 			assert.Equal(t, metric.Tags["loggregatorAddress"], "127.0.0.1")
 		default:
 			t.Error("Got an invalid metric name: ", metric.Name)
