@@ -69,6 +69,19 @@ func TestLogMessageEmitTruncatesLargeMessages(t *testing.T) {
 	assert.True(t, len(receivedMessageText) >= MAX_MESSAGE_BYTE_SIZE)
 }
 
+func TestLogMessageEmitSplitsMessagesOnNewlines(t *testing.T) {
+	received := make(chan *[]byte, 10)
+	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	e.LoggregatorClient = &MockLoggregatorClient{received}
+
+	message := "hi\n\rworld\nhow are you\r\ndoing\r"
+	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
+	logMessage.SourceId = proto.String("src_id")
+	e.EmitLogMessage(logMessage)
+
+	assert.Equal(t, len(received), 4)
+}
+
 func TestLogEnvelopeEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
