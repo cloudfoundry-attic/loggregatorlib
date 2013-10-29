@@ -39,6 +39,67 @@ func TestExtractionFromEnvelope(t *testing.T) {
 	assert.Equal(t, "App", message.GetShortSourceTypeName())
 }
 
+func TestExtractEnvelopeFromRawBytes(t *testing.T) {
+	//This allows us to verify that the same extraction can be done on the Ruby side
+	data := []uint8{10, 9, 109, 121, 95, 97, 112, 112, 95, 105, 100, 18, 64, 67, 109, 68, 59, 160, 30, 95, 112, 42, 77, 128, 177, 211, 49, 141, 47, 133, 50, 22, 190, 201, 17, 47, 67, 244, 76, 227, 27, 123, 227, 10, 148, 184, 174, 154, 35, 87, 69, 59, 144, 77, 202, 12, 46, 49, 150, 61, 117, 16, 120, 22, 92, 194, 213, 104, 254, 151, 63, 161, 68, 222, 157, 3, 40, 26, 43, 10, 12, 72, 101, 108, 108, 111, 32, 116, 104, 101, 114, 101, 33, 16, 1, 24, 176, 251, 228, 135, 196, 164, 211, 177, 38, 34, 9, 109, 121, 95, 97, 112, 112, 95, 105, 100, 40, 1, 50, 2, 52, 50}
+
+	receivedEnvelope := &LogEnvelope{}
+	err := proto.Unmarshal(data, receivedEnvelope)
+	assert.NoError(t, err)
+
+	assert.Equal(t, receivedEnvelope.GetLogMessage().GetMessage(), []byte("Hello there!"))
+	assert.Equal(t, receivedEnvelope.GetLogMessage().GetAppId(), "my_app_id")
+	assert.Equal(t, receivedEnvelope.GetLogMessage().GetSourceId(), "42")
+
+	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "my_app_id")
+
+	the_sig := receivedEnvelope.GetSignature()
+	actual_digest, err := signature.Decrypt("secret", the_sig)
+	assert.NoError(t, err)
+	expected_digest := signature.Digest("Hello there!")
+	assert.Equal(t, actual_digest, expected_digest)
+}
+
+func TestThatSignatureValidatesWhenItMatches(t *testing.T) {
+	secret := "super-secret"
+	logMessage := NewLogMessage(t, "the logs", "appid")
+	signatureOfMessage, err := signature.Encrypt(secret, signature.Digest(string(logMessage.GetMessage())))
+	assert.NoError(t, err)
+
+	envelope := &LogEnvelope{
+		LogMessage: logMessage,
+		RoutingKey: proto.String(*logMessage.AppId),
+		Signature:  signatureOfMessage,
+	}
+
+	assert.True(t, envelope.VerifySignature(secret))
+}
+
+func TestThatSignatureDoesNotValidateWhenItDoesntMatch(t *testing.T) {
+	envelope := &LogEnvelope{
+		LogMessage: &LogMessage{},
+		RoutingKey: proto.String("app_id"),
+		Signature:  []byte{0, 1, 2}, //some bad signature
+	}
+
+	assert.False(t, envelope.VerifySignature("super-secret"))
+}
+
+func TestThatSignatureDoesNotValidateWhenSecretIsIncorrect(t *testing.T) {
+	secret := "super-secret"
+	logMessage := NewLogMessage(t, "the logs", "appid")
+	signatureOfMessage, err := signature.Encrypt(secret, signature.Digest(logMessage.String()))
+	assert.NoError(t, err)
+
+	envelope := &LogEnvelope{
+		LogMessage: logMessage,
+		RoutingKey: proto.String(*logMessage.AppId),
+		Signature:  signatureOfMessage,
+	}
+
+	assert.False(t, envelope.VerifySignature(secret+"not the right secret"))
+}
+
 func NewLogMessage(t *testing.T, messageString, appId string) *LogMessage {
 	currentTime := time.Now()
 
@@ -75,4 +136,11 @@ func MarshalledLogEnvelope(t *testing.T, unmarshalledMessage *LogMessage, secret
 	assert.NoError(t, err)
 
 	return marshalledEnvelope
+}
+
+func UnmarshalLogEnvelope(t *testing.T, data []byte) *LogEnvelope {
+	logEnvelope := new(LogEnvelope)
+	err := proto.Unmarshal(data, logEnvelope)
+	assert.NoError(t, err)
+	return logEnvelope
 }

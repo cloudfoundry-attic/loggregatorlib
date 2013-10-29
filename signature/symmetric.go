@@ -6,7 +6,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"io"
 )
@@ -27,19 +27,20 @@ func Decrypt(key string, encryptedMessage []byte) ([]byte, error) {
 
 	clonedEncryptedMessage := make([]byte, len(encryptedMessage))
 	copy(clonedEncryptedMessage, encryptedMessage)
-	iv := clonedEncryptedMessage[:aes.BlockSize]
-	if len(iv) != aes.BlockSize {
+
+	if len(clonedEncryptedMessage) < aes.BlockSize {
 		return nil, ErrInvalidIV
 	}
-	message := clonedEncryptedMessage[aes.BlockSize:]
 
+	iv := clonedEncryptedMessage[:aes.BlockSize]
+	message := clonedEncryptedMessage[aes.BlockSize:]
 	cbc := cipher.NewCBCDecrypter(cypher, iv)
 	cbc.CryptBlocks(message, message)
 	return unpadBuffer(message)
 }
 
 func Digest(message string) []byte {
-	hasher := sha1.New()
+	hasher := sha256.New()
 	io.WriteString(hasher, message)
 	hashedKey := hasher.Sum(nil)
 
@@ -70,10 +71,9 @@ func Encrypt(key string, message []byte) ([]byte, error) {
 }
 
 func getEncryptionKey(key string) []byte {
-	hasher := sha1.New()
+	hasher := sha256.New()
 	io.WriteString(hasher, key)
 	hashedKey := hasher.Sum(nil)
-
 	return []byte(hashedKey)[:16]
 }
 

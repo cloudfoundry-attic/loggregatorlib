@@ -1,6 +1,9 @@
 package logmessage
 
-import "code.google.com/p/gogoprotobuf/proto"
+import (
+	"code.google.com/p/gogoprotobuf/proto"
+	"github.com/cloudfoundry/loggregatorlib/signature"
+)
 
 type Message struct {
 	logMessage       *LogMessage
@@ -63,4 +66,14 @@ func (m *Message) parseProtoBuffer(data []byte) error {
 	}
 
 	return err
+}
+
+func (e *LogEnvelope) VerifySignature(secret string) bool {
+	messageDigest, err := signature.Decrypt(secret, e.GetSignature())
+	if err != nil {
+		return false
+	}
+
+	expectedDigest := signature.Digest(string(e.LogMessage.GetMessage()))
+	return string(messageDigest) == string(expectedDigest)
 }
