@@ -34,6 +34,19 @@ func TestEmit(t *testing.T) {
 	assert.Equal(t, receivedMessage.GetSourceId(), "42")
 }
 
+
+func TestEmitWithNewEmitter(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
+	e.LoggregatorClient = &MockLoggregatorClient{received}
+	e.Emit("appid", "foo")
+	receivedMessage := extractLogMessage(t, <-received)
+
+	assert.Equal(t, receivedMessage.GetMessage(), []byte("foo"))
+	assert.Equal(t, receivedMessage.GetAppId(), "appid")
+	assert.Equal(t, receivedMessage.GetSourceId(), "42")
+}
+
 func TestLogMessageEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
@@ -127,6 +140,13 @@ var emitters = []func(bool) (*loggregatoremitter, error){
 			return NewLogMessageEmitter("localhost:38452", "ROUTER", "42", nil)
 		} else {
 			return NewLogMessageEmitter("server", "FOOSERVER", "42", nil)
+		}
+	},
+	func(valid bool) (*loggregatoremitter, error) {
+		if valid {
+			return NewEmitter("localhost:38452", "ROUTER", "42", nil)
+		} else {
+			return NewEmitter("server", "FOOSERVER", "42", nil)
 		}
 	},
 	func(valid bool) (*loggregatoremitter, error) {

@@ -78,6 +78,10 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 	}
 }
 
+func NewEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
+	return NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, "", logger)
+}
+
 func NewLogMessageEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
 	return NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, "", logger)
 }
