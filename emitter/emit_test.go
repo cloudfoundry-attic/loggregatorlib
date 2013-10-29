@@ -49,6 +49,26 @@ func TestLogMessageEmit(t *testing.T) {
 	assert.Equal(t, receivedMessage.GetSourceId(), "src_id")
 }
 
+func TestLogMessageEmitTruncatesLargeMessages(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	e.LoggregatorClient = &MockLoggregatorClient{received}
+
+	message := ""
+	for i := 0; i < MAX_MESSAGE_BYTE_SIZE*2; i++ {
+		message += "a"
+	}
+	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
+	logMessage.SourceId = proto.String("src_id")
+	e.EmitLogMessage(logMessage)
+	receivedMessage := extractLogMessage(t, <-received)
+
+	receivedMessageText := receivedMessage.GetMessage()
+	trucatedOffset := len(receivedMessageText) - len(TRUNCATED_BYTES)
+	assert.Equal(t, receivedMessageText[trucatedOffset:], TRUNCATED_BYTES)
+	assert.True(t, len(receivedMessageText) >= MAX_MESSAGE_BYTE_SIZE)
+}
+
 func TestLogEnvelopeEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)

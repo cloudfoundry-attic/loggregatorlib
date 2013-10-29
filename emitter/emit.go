@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+var (
+	MAX_MESSAGE_BYTE_SIZE = (9 * 1024) - 512
+	TRUNCATED_BYTES       = []byte("TRUNCATED")
+	TRUNCATED_OFFSET      = MAX_MESSAGE_BYTE_SIZE - len(TRUNCATED_BYTES)
+)
+
 type Emitter interface {
 	Emit(string, string)
 	EmitLogMessage(*logmessage.LogMessage)
@@ -39,6 +45,10 @@ func (e *loggregatoremitter) Emit(appid, message string) {
 }
 
 func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
+	if len(logMessage.GetMessage()) > MAX_MESSAGE_BYTE_SIZE {
+		logMessage.Message = append(logMessage.Message[0:TRUNCATED_OFFSET], TRUNCATED_BYTES...)
+	}
+
 	if e.sharedSecret == "" {
 		marshalledLogMessage, err := proto.Marshal(logMessage)
 		if err != nil {
