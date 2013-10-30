@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	Syslog     string
 	VarzPort   uint32
 	VarzUser   string
 	VarzPass   string

@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-func NewLogger(verbose bool, logFilePath, name string) *gosteno.Logger {
+func NewLogger(verbose bool, logFilePath, name string, config Config) *gosteno.Logger {
 	level := gosteno.LOG_INFO
 
 	if verbose {
@@ -27,6 +27,11 @@ func NewLogger(verbose bool, logFilePath, name string) *gosteno.Logger {
 	} else {
 		loggingConfig.Sinks[0] = gosteno.NewFileSink(logFilePath)
 	}
+
+	if config.Syslog != "" {
+		loggingConfig.Sinks = append(loggingConfig.Sinks, gosteno.NewSyslogSink(config.Syslog))
+	}
+
 	gosteno.Init(loggingConfig)
 	logger := gosteno.NewLogger(name)
 	logger.Debugf("Component %s in debug mode!", name)
