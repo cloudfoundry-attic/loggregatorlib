@@ -7,7 +7,7 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/cloudfoundry/loggregatorlib/signature"
-	"regexp"
+	//	"regexp"
 	"strings"
 	"time"
 )
@@ -46,38 +46,39 @@ func (e *loggregatoremitter) Emit(appid, message string) {
 }
 
 func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
-	messages := regexp.MustCompile("\r\n|\n\r|\n|\r").Split(string(logMessage.Message), -1)
+	//messages := regexp.MustCompile("\r\n|\n\r|\n|\r").Split(string(logMessage.Message), -1)
 
-	for _, message := range messages {
-		if isEmpty(message) {
-			continue
-		}
+	//for _, message := range messages {
+	//		if isEmpty(message) {
+	//			continue
+	//		}
 
-		if len(message) > MAX_MESSAGE_BYTE_SIZE {
-			logMessage.Message = append([]byte(message)[0:TRUNCATED_OFFSET], TRUNCATED_BYTES...)
-		} else {
-			logMessage.Message = []byte(message)
-		}
-
-		if e.sharedSecret == "" {
-			marshalledLogMessage, err := proto.Marshal(logMessage)
-			if err != nil {
-				e.logger.Errorf("Error marshalling message: %s", err)
-				return
-			}
-			e.logger.Debugf("Sent LogMessage: %s", logMessage.String())
-			e.LoggregatorClient.Send(marshalledLogMessage)
-		} else {
-			logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
-			marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
-			if err != nil {
-				e.logger.Errorf("Error marshalling envelope: %s", err)
-				return
-			}
-			e.logger.Debugf("Sent LogEnvelope: %s", logEnvelope.String())
-			e.LoggregatorClient.Send(marshalledLogEnvelope)
-		}
+	message := logMessage.Message
+	if len(message) > MAX_MESSAGE_BYTE_SIZE {
+		logMessage.Message = append([]byte(message)[0:TRUNCATED_OFFSET], TRUNCATED_BYTES...)
+	} else {
+		logMessage.Message = []byte(message)
 	}
+
+	if e.sharedSecret == "" {
+		marshalledLogMessage, err := proto.Marshal(logMessage)
+		if err != nil {
+			e.logger.Errorf("Error marshalling message: %s", err)
+			return
+		}
+		e.logger.Debugf("Sent LogMessage: %s", logMessage.String())
+		e.LoggregatorClient.Send(marshalledLogMessage)
+	} else {
+		logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
+		marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
+		if err != nil {
+			e.logger.Errorf("Error marshalling envelope: %s", err)
+			return
+		}
+		e.logger.Debugf("Sent LogEnvelope: %s", logEnvelope.String())
+		e.LoggregatorClient.Send(marshalledLogEnvelope)
+	}
+	//	}
 }
 
 func NewEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
