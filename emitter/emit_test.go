@@ -5,7 +5,7 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
-	"github.com/cloudfoundry/loggregatorlib/signature"
+	//	"github.com/cloudfoundry/loggregatorlib/signature"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -94,44 +94,44 @@ func TestLogMessageEmitTruncatesLargeMessages(t *testing.T) {
 //	assert.Equal(t, len(received), 4)
 //}
 
-func TestLogEnvelopeEmitter(t *testing.T) {
-	received := make(chan *[]byte, 1)
-	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
-	e.LoggregatorClient = &MockLoggregatorClient{received}
-	e.Emit("appid", "foo")
-	receivedEnvelope := extractLogEnvelope(t, <-received)
-
-	assert.Equal(t, receivedEnvelope.GetLogMessage().GetMessage(), []byte("foo"))
-	assert.Equal(t, receivedEnvelope.GetLogMessage().GetAppId(), "appid")
-	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "appid")
-	assert.Equal(t, receivedEnvelope.GetLogMessage().GetSourceId(), "42")
-}
-
-func TestLogEnvelopeValidRoutinKeyInTheEnvelope(t *testing.T) {
-	received := make(chan *[]byte, 1)
-	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
-	e.LoggregatorClient = &MockLoggregatorClient{received}
-	e.Emit("appid", "foo")
-	receivedEnvelope := extractLogEnvelope(t, <-received)
-
-	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "appid")
-}
-
-func TestLogEnvelopeSignatureInTheEnvelope(t *testing.T) {
-	sharedKey := "shared key"
-
-	received := make(chan *[]byte, 1)
-	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", sharedKey, nil)
-	e.LoggregatorClient = &MockLoggregatorClient{received}
-	e.Emit("appid", "foo")
-	receivedEnvelope := extractLogEnvelope(t, <-received)
-
-	expectedDigest := signature.Digest(receivedEnvelope.GetLogMessage().String())
-	extractedDigest, err := signature.Decrypt(sharedKey, receivedEnvelope.GetSignature())
-	assert.NoError(t, err)
-
-	assert.Equal(t, extractedDigest, expectedDigest)
-}
+//func TestLogEnvelopeEmitter(t *testing.T) {
+//	received := make(chan *[]byte, 1)
+//	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+//	e.LoggregatorClient = &MockLoggregatorClient{received}
+//	e.Emit("appid", "foo")
+//	receivedEnvelope := extractLogEnvelope(t, <-received)
+//
+//	assert.Equal(t, receivedEnvelope.GetLogMessage().GetMessage(), []byte("foo"))
+//	assert.Equal(t, receivedEnvelope.GetLogMessage().GetAppId(), "appid")
+//	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "appid")
+//	assert.Equal(t, receivedEnvelope.GetLogMessage().GetSourceId(), "42")
+//}
+//
+//func TestLogEnvelopeValidRoutinKeyInTheEnvelope(t *testing.T) {
+//	received := make(chan *[]byte, 1)
+//	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+//	e.LoggregatorClient = &MockLoggregatorClient{received}
+//	e.Emit("appid", "foo")
+//	receivedEnvelope := extractLogEnvelope(t, <-received)
+//
+//	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "appid")
+//}
+//
+//func TestLogEnvelopeSignatureInTheEnvelope(t *testing.T) {
+//	sharedKey := "shared key"
+//
+//	received := make(chan *[]byte, 1)
+//	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", sharedKey, nil)
+//	e.LoggregatorClient = &MockLoggregatorClient{received}
+//	e.Emit("appid", "foo")
+//	receivedEnvelope := extractLogEnvelope(t, <-received)
+//
+//	expectedDigest := signature.Digest(receivedEnvelope.GetLogMessage().String())
+//	extractedDigest, err := signature.Decrypt(sharedKey, receivedEnvelope.GetSignature())
+//	assert.NoError(t, err)
+//
+//	assert.Equal(t, extractedDigest, expectedDigest)
+//}
 
 var emitters = []func(bool) (*loggregatoremitter, error){
 	func(valid bool) (*loggregatoremitter, error) {

@@ -60,24 +60,24 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 		logMessage.Message = []byte(message)
 	}
 
-	if e.sharedSecret == "" {
-		marshalledLogMessage, err := proto.Marshal(logMessage)
-		if err != nil {
-			e.logger.Errorf("Error marshalling message: %s", err)
-			return
-		}
-		e.logger.Debugf("Sent LogMessage: %s", logMessage.String())
-		e.LoggregatorClient.Send(marshalledLogMessage)
-	} else {
-		logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
-		marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
-		if err != nil {
-			e.logger.Errorf("Error marshalling envelope: %s", err)
-			return
-		}
-		e.logger.Debugf("Sent LogEnvelope: %s", logEnvelope.String())
-		e.LoggregatorClient.Send(marshalledLogEnvelope)
+	//	if e.sharedSecret == "" {
+	marshalledLogMessage, err := proto.Marshal(logMessage)
+	if err != nil {
+		e.logger.Errorf("Error marshalling message: %s", err)
+		return
 	}
+	e.logger.Debugf("Sent LogMessage: %s", logMessage.String())
+	e.LoggregatorClient.Send(marshalledLogMessage)
+	//	} else {
+	//		logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
+	//		marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
+	//		if err != nil {
+	//			e.logger.Errorf("Error marshalling envelope: %s", err)
+	//			return
+	//		}
+	//		e.logger.Debugf("Sent LogEnvelope: %s", logEnvelope.String())
+	//		e.LoggregatorClient.Send(marshalledLogEnvelope)
+	//	}
 	//	}
 }
 
