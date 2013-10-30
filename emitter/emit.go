@@ -65,6 +65,7 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 				e.logger.Errorf("Error marshalling message: %s", err)
 				return
 			}
+			e.logger.Debugf("Sent LogMessage: %s", logMessage.String())
 			e.LoggregatorClient.Send(marshalledLogMessage)
 		} else {
 			logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
@@ -73,6 +74,7 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 				e.logger.Errorf("Error marshalling envelope: %s", err)
 				return
 			}
+			e.logger.Debugf("Sent LogEnvelope: %s", logEnvelope.String())
 			e.LoggregatorClient.Send(marshalledLogEnvelope)
 		}
 	}
@@ -105,6 +107,7 @@ func NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, sharedSecret
 	e.LoggregatorClient = loggregatorclient.NewLoggregatorClient(loggregatorServer, logger, loggregatorclient.DefaultBufferSize)
 	e.sId = sourceId
 
+	e.logger.Debugf("Created new loggregator emitter: %#v", e)
 	return
 }
 

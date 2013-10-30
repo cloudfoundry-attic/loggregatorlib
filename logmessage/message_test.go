@@ -2,6 +2,7 @@ package logmessage
 
 import (
 	"code.google.com/p/gogoprotobuf/proto"
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/loggregatorlib/signature"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -14,7 +15,7 @@ func TestExtractionFromMessage(t *testing.T) {
 	unmarshalledMessage := NewLogMessage(t, appMessageString, "myApp")
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 
-	message, err := ParseProtobuffer(marshalledMessage)
+	message, err := ParseProtobuffer(marshalledMessage, loggertesthelper.Logger())
 	assert.NoError(t, err)
 
 	assert.Equal(t, uint32(33), message.GetRawMessageLength())
@@ -30,7 +31,7 @@ func TestExtractionFromEnvelope(t *testing.T) {
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 	marshalledEnvelope := MarshalledLogEnvelope(t, unmarshalledMessage, "some secret")
 
-	message, err := ParseProtobuffer(marshalledEnvelope)
+	message, err := ParseProtobuffer(marshalledEnvelope, loggertesthelper.Logger())
 	assert.NoError(t, err)
 
 	assert.Equal(t, uint32(33), message.GetRawMessageLength())
@@ -41,17 +42,14 @@ func TestExtractionFromEnvelope(t *testing.T) {
 
 func TestExtractEnvelopeFromRawBytes(t *testing.T) {
 	//This allows us to verify that the same extraction can be done on the Ruby side
-	data := []uint8{10, 9, 109, 121, 95, 97, 112, 112, 95, 105, 100, 18, 64, 67, 109, 68, 59, 160, 30, 95, 112, 42, 77, 128, 177, 211, 49, 141, 47, 133, 50, 22, 190, 201, 17, 47, 67, 244, 76, 227, 27, 123, 227, 10, 148, 184, 174, 154, 35, 87, 69, 59, 144, 77, 202, 12, 46, 49, 150, 61, 117, 16, 120, 22, 92, 194, 213, 104, 254, 151, 63, 161, 68, 222, 157, 3, 40, 26, 43, 10, 12, 72, 101, 108, 108, 111, 32, 116, 104, 101, 114, 101, 33, 16, 1, 24, 176, 251, 228, 135, 196, 164, 211, 177, 38, 34, 9, 109, 121, 95, 97, 112, 112, 95, 105, 100, 40, 1, 50, 2, 52, 50}
-
+	data := []uint8{10, 9, 109, 121, 95, 97, 112, 112, 95, 105, 100, 18, 64, 200, 50, 155, 229, 192, 81, 84, 207, 6, 73, 170, 77, 69, 0, 228, 210, 19, 158, 158, 196, 167, 164, 202, 189, 124, 54, 25, 26, 200, 250, 65, 64, 213, 183, 116, 76, 142, 82, 219, 61, 103, 39, 98, 171, 3, 123, 48, 162, 232, 216, 69, 38, 151, 75, 36, 40, 253, 162, 1, 9, 40, 219, 229, 55, 26, 43, 10, 12, 72, 101, 108, 108, 111, 32, 116, 104, 101, 114, 101, 33, 16, 1, 24, 224, 151, 169, 222, 161, 217, 246, 177, 38, 34, 9, 109, 121, 95, 97, 112, 112, 95, 105, 100, 40, 1, 50, 2, 52, 50}
 	receivedEnvelope := &LogEnvelope{}
 	err := proto.Unmarshal(data, receivedEnvelope)
 	assert.NoError(t, err)
-
 	assert.Equal(t, receivedEnvelope.GetLogMessage().GetMessage(), []byte("Hello there!"))
 	assert.Equal(t, receivedEnvelope.GetLogMessage().GetAppId(), "my_app_id")
-	assert.Equal(t, receivedEnvelope.GetLogMessage().GetSourceId(), "42")
-
 	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "my_app_id")
+	assert.Equal(t, receivedEnvelope.GetLogMessage().GetSourceId(), "42")
 
 	the_sig := receivedEnvelope.GetSignature()
 	actual_digest, err := signature.Decrypt("secret", the_sig)

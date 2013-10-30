@@ -34,7 +34,6 @@ func TestEmit(t *testing.T) {
 	assert.Equal(t, receivedMessage.GetSourceId(), "42")
 }
 
-
 func TestEmitWithNewEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
