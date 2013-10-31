@@ -9,11 +9,11 @@ Call Emit on the emitter with the application GUID and message strings.
 
 ### Valid source types are:
 
- 	CLOUD_CONTROLLER
- 	ROUTER
+ 	API (Cloud Controller)
+ 	RTR (Go Router)
  	UAA
  	DEA
- 	WARDEN_CONTAINER
+ 	APP (Warden container)
 
 ###Sample Workflow
 
@@ -21,7 +21,7 @@ Call Emit on the emitter with the application GUID and message strings.
 
     func main() {
         appGuid := "a8977cb6-3365-4be1-907e-0c878b3a4c6b" // The GUID(UUID) for the user's application
-        emitter, err := emitter.NewLogMessageEmitter("10.10.10.16:38452", "ROUTER", "shared secret", gosteno.NewLogger("LoggregatorEmitter"))
+        emitter, err := emitter.NewLogMessageEmitter("10.10.10.16:38452", "RTR", "shared secret", gosteno.NewLogger("LoggregatorEmitter"))
         emitter.Emit(appGuid, message)
     }
 
