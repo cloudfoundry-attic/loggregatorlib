@@ -71,7 +71,11 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 			}
 			e.LoggregatorClient.Send(marshalledLogMessage)
 		} else {
-			logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
+			logEnvelope, err := e.newLogEnvelope(*logMessage.AppId, logMessage)
+			if err != nil {
+				e.logger.Errorf("Error creating envelope: %s", err)
+				return
+			}
 			marshalledLogEnvelope, err := proto.Marshal(logEnvelope)
 			if err != nil {
 				e.logger.Errorf("Error marshalling envelope: %s", err)
@@ -127,13 +131,13 @@ func (e *loggregatoremitter) newLogMessage(appId, message string) *logmessage.Lo
 	}
 }
 
-func (e *loggregatoremitter) newLogEnvelope(appId string, message *logmessage.LogMessage) *logmessage.LogEnvelope {
+func (e *loggregatoremitter) newLogEnvelope(appId string, message *logmessage.LogMessage) (*logmessage.LogEnvelope, error) {
 	envelope := &logmessage.LogEnvelope{
 		LogMessage: message,
 		RoutingKey: proto.String(appId),
 		Signature:  []byte{},
 	}
-	envelope.SignEnvelope(e.sharedSecret)
+	err := envelope.SignEnvelope(e.sharedSecret)
 
-	return envelope
+	return envelope, err
 }

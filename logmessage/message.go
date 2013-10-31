@@ -87,8 +87,13 @@ func (e *LogEnvelope) VerifySignature(sharedSecret string) bool {
 	return string(messageDigest) == string(expectedDigest)
 }
 
-func (e *LogEnvelope) SignEnvelope(sharedSecret string) {
-	e.Signature, _ = signature.Encrypt(sharedSecret, e.logMessageDigest())
+func (e *LogEnvelope) SignEnvelope(sharedSecret string) error {
+	signature, err := signature.Encrypt(sharedSecret, e.logMessageDigest())
+	if err == nil {
+		e.Signature = signature
+	}
+
+	return err
 }
 
 func (e *LogEnvelope) logMessageDigest() []byte {
