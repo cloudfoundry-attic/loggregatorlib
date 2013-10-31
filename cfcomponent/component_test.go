@@ -135,6 +135,41 @@ func (t testInstrumentable) Emit() instrumentation.Context {
 	return instrumentation.Context{Name: t.name, Metrics: t.metrics}
 }
 
+func TestVarzRequiresBasicAuth(t *testing.T) {
+	tags := map[string]interface{}{"tagName1": "tagValue1", "tagName2": "tagValue2"}
+	component := &Component{
+		Logger:            loggertesthelper.Logger(),
+		HealthMonitor:     GoodHealthMonitor{},
+		StatusPort:        1234,
+		IpAddress:         "127.0.0.1",
+		Type:              "loggregator",
+		StatusCredentials: []string{"user", "pass"},
+		Instrumentables: []instrumentation.Instrumentable{
+			testInstrumentable{
+				"agentListener",
+				[]instrumentation.Metric{
+					instrumentation.Metric{Name: "messagesReceived", Value: 2004},
+					instrumentation.Metric{Name: "queueLength", Value: 5, Tags: tags},
+				},
+			},
+			testInstrumentable{
+				"cfSinkServer",
+				[]instrumentation.Metric{
+					instrumentation.Metric{Name: "activeSinkCount", Value: 3},
+				},
+			},
+		},
+	}
+
+	go component.StartMonitoringEndpoints()
+
+	req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
+	assert.NoError(t, err)
+	resp, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, resp.StatusCode, 401)
+}
+
 func TestVarzEndpoint(t *testing.T) {
 	tags := map[string]interface{}{"tagName1": "tagValue1", "tagName2": "tagValue2"}
 	component := &Component{
@@ -164,6 +199,7 @@ func TestVarzEndpoint(t *testing.T) {
 	go component.StartMonitoringEndpoints()
 
 	req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
+	req.SetBasicAuth(component.StatusCredentials[0], component.StatusCredentials[1])
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 

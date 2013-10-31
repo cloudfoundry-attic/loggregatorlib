@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cloudfoundry/gosteno"
+	"github.com/cloudfoundry/loggregatorlib/cfcomponent/auth"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/localip"
 	"net/http"
@@ -23,6 +24,11 @@ type Component struct {
 	Instrumentables   []instrumentation.Instrumentable
 }
 
+const (
+	username = iota
+	password
+)
+
 func NewComponent(logger *gosteno.Logger, componentType string, index uint, heathMonitor HealthMonitor, statusPort uint32, statusCreds []string, instrumentables []instrumentation.Instrumentable) (Component, error) {
 	ip, err := localip.LocalIP()
 	if err != nil {
@@ -36,7 +42,7 @@ func NewComponent(logger *gosteno.Logger, componentType string, index uint, heat
 		}
 	}
 
-	if len(statusCreds) == 0 || statusCreds[0] == "" || statusCreds[1] == "" {
+	if len(statusCreds) == 0 || statusCreds[username] == "" || statusCreds[password] == "" {
 		randUser := make([]byte, 42)
 		randPass := make([]byte, 42)
 		rand.Read(randUser)
@@ -62,10 +68,11 @@ func NewComponent(logger *gosteno.Logger, componentType string, index uint, heat
 
 func (c Component) StartMonitoringEndpoints() error {
 	mux := http.NewServeMux()
+	auth := auth.NewBasicAuth("Realm", c.StatusCredentials)
 	mux.HandleFunc("/healthz", healthzHandlerFor(c))
-	mux.HandleFunc("/varz", varzHandlerFor(c))
+	mux.HandleFunc("/varz", auth.Wrap(varzHandlerFor(c)))
 
-	c.Debugf("Starting endpoints for component %s with collect at ip: %s, port: %d, username: %s, password %s", c.UUID, c.IpAddress, c.StatusPort, c.StatusCredentials[0], c.StatusCredentials[1])
+	c.Debugf("Starting endpoints for component %s with collect at ip: %s, port: %d, username: %s, password %s", c.UUID, c.IpAddress, c.StatusPort, c.StatusCredentials[username], c.StatusCredentials[password])
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", c.IpAddress, c.StatusPort), mux)
 	return err
 }
@@ -84,6 +91,7 @@ func healthzHandlerFor(c Component) func(w http.ResponseWriter, req *http.Reques
 
 func varzHandlerFor(c Component) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
+
 		message, err := instrumentation.NewVarzMessage(c.Type, c.Instrumentables)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
