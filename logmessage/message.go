@@ -78,12 +78,20 @@ func (m *Message) parseProtoBuffer(data []byte, logger *gosteno.Logger) error {
 	return err
 }
 
-func (e *LogEnvelope) VerifySignature(secret string) bool {
-	messageDigest, err := signature.Decrypt(secret, e.GetSignature())
+func (e *LogEnvelope) VerifySignature(sharedSecret string) bool {
+	messageDigest, err := signature.Decrypt(sharedSecret, e.GetSignature())
 	if err != nil {
 		return false
 	}
 
-	expectedDigest := signature.Digest(string(e.LogMessage.GetMessage()))
+	expectedDigest := e.logMessageDigest()
 	return string(messageDigest) == string(expectedDigest)
+}
+
+func (e *LogEnvelope) SignEnvelope(sharedSecret string) {
+	e.Signature, _ = signature.Encrypt(sharedSecret, e.logMessageDigest())
+}
+
+func (e *LogEnvelope) logMessageDigest() []byte {
+	return signature.DigestBytes(e.LogMessage.GetMessage())
 }

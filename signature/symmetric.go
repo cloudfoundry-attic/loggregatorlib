@@ -39,12 +39,12 @@ func Decrypt(key string, encryptedMessage []byte) ([]byte, error) {
 	return unpadBuffer(message)
 }
 
-func Digest(message string) []byte {
+func DigestBytes(message []byte) []byte {
 	hasher := sha256.New()
-	io.WriteString(hasher, message)
+	hasher.Write(message)
 	hashedKey := hasher.Sum(nil)
 
-	return []byte(hashedKey)
+	return hashedKey
 }
 
 func Encrypt(key string, message []byte) ([]byte, error) {

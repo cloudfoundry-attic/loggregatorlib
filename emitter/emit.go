@@ -6,7 +6,7 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
-	"github.com/cloudfoundry/loggregatorlib/signature"
+	//	"regexp"
 	"strings"
 	"time"
 )
@@ -132,14 +132,12 @@ func (e *loggregatoremitter) newLogMessage(appId, message string) *logmessage.Lo
 }
 
 func (e *loggregatoremitter) newLogEnvelope(appId string, message *logmessage.LogMessage) *logmessage.LogEnvelope {
-	return &logmessage.LogEnvelope{
+	envelope := &logmessage.LogEnvelope{
 		LogMessage: message,
 		RoutingKey: proto.String(appId),
-		Signature:  e.sign(message),
+		Signature:  []byte{},
 	}
-}
+	envelope.SignEnvelope(e.sharedSecret)
 
-func (e *loggregatoremitter) sign(logMessage *logmessage.LogMessage) []byte {
-	signatureOfMessage, _ := signature.Encrypt(e.sharedSecret, signature.Digest(logMessage.String()))
-	return signatureOfMessage
+	return envelope
 }

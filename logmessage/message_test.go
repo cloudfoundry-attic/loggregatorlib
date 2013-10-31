@@ -3,7 +3,6 @@ package logmessage
 import (
 	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
-	"github.com/cloudfoundry/loggregatorlib/signature"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -51,24 +50,18 @@ func TestExtractEnvelopeFromRawBytes(t *testing.T) {
 	assert.Equal(t, receivedEnvelope.GetRoutingKey(), "my_app_id")
 	assert.Equal(t, receivedEnvelope.GetLogMessage().GetSourceId(), "42")
 
-	the_sig := receivedEnvelope.GetSignature()
-	actual_digest, err := signature.Decrypt("secret", the_sig)
-	assert.NoError(t, err)
-	expected_digest := signature.Digest("Hello there!")
-	assert.Equal(t, actual_digest, expected_digest)
+	assert.True(t, receivedEnvelope.VerifySignature("secret"))
 }
 
 func TestThatSignatureValidatesWhenItMatches(t *testing.T) {
 	secret := "super-secret"
 	logMessage := NewLogMessage(t, "the logs", "appid")
-	signatureOfMessage, err := signature.Encrypt(secret, signature.Digest(string(logMessage.GetMessage())))
-	assert.NoError(t, err)
 
 	envelope := &LogEnvelope{
 		LogMessage: logMessage,
 		RoutingKey: proto.String(*logMessage.AppId),
-		Signature:  signatureOfMessage,
 	}
+	envelope.SignEnvelope(secret)
 
 	assert.True(t, envelope.VerifySignature(secret))
 }
@@ -86,14 +79,12 @@ func TestThatSignatureDoesNotValidateWhenItDoesntMatch(t *testing.T) {
 func TestThatSignatureDoesNotValidateWhenSecretIsIncorrect(t *testing.T) {
 	secret := "super-secret"
 	logMessage := NewLogMessage(t, "the logs", "appid")
-	signatureOfMessage, err := signature.Encrypt(secret, signature.Digest(logMessage.String()))
-	assert.NoError(t, err)
 
 	envelope := &LogEnvelope{
 		LogMessage: logMessage,
 		RoutingKey: proto.String(*logMessage.AppId),
-		Signature:  signatureOfMessage,
 	}
+	envelope.SignEnvelope(secret)
 
 	assert.False(t, envelope.VerifySignature(secret+"not the right secret"))
 }
@@ -121,14 +112,11 @@ func MarshallLogMessage(t *testing.T, unmarshalledMessage *LogMessage) []byte {
 }
 
 func MarshalledLogEnvelope(t *testing.T, unmarshalledMessage *LogMessage, secret string) []byte {
-	signatureOfMessage, err := signature.Encrypt(secret, signature.Digest(unmarshalledMessage.String()))
-	assert.NoError(t, err)
-
 	envelope := &LogEnvelope{
 		LogMessage: unmarshalledMessage,
 		RoutingKey: proto.String(*unmarshalledMessage.AppId),
-		Signature:  signatureOfMessage,
 	}
+	envelope.SignEnvelope(secret)
 
 	marshalledEnvelope, err := proto.Marshal(envelope)
 	assert.NoError(t, err)

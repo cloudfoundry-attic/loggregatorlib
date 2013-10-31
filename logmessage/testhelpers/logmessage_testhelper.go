@@ -6,7 +6,6 @@ import (
 	"testing"
 	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/stretchr/testify/assert"
-	"github.com/cloudfoundry/loggregatorlib/signature"
 )
 
 func MarshalledErrorLogMessage(t *testing.T, messageString string, appId string) []byte {
@@ -52,14 +51,11 @@ func NewLogMessage(messageString, appId string) *logmessage.LogMessage {
 }
 
 func MarshalledLogEnvelope(t *testing.T, unmarshalledMessage *logmessage.LogMessage, secret string) []byte {
-	signatureOfMessage, err := signature.Encrypt(secret, signature.Digest(unmarshalledMessage.String()))
-	assert.NoError(t, err)
-
 	envelope := &logmessage.LogEnvelope{
 		LogMessage: unmarshalledMessage,
 		RoutingKey: proto.String(*unmarshalledMessage.AppId),
-		Signature:  signatureOfMessage,
 	}
+	envelope.SignEnvelope(secret)
 
 	return marshalProtoBuf(t, envelope)
 }
