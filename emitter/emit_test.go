@@ -8,7 +8,10 @@ import (
 	//	"github.com/cloudfoundry/loggregatorlib/signature"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
+
+const SECOND = int64(1 * time.Second)
 
 type MockLoggregatorClient struct {
 	received chan *[]byte
@@ -66,10 +69,8 @@ func TestLogMessageEmitTruncatesLargeMessages(t *testing.T) {
 	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
-	message := ""
-	for i := 0; i < MAX_MESSAGE_BYTE_SIZE*2; i++ {
-		message += "a"
-	}
+	message := longMessage()
+
 	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
 	logMessage.SourceId = proto.String("src_id")
 	e.EmitLogMessage(logMessage)
@@ -81,18 +82,18 @@ func TestLogMessageEmitTruncatesLargeMessages(t *testing.T) {
 	assert.True(t, len(receivedMessageText) >= MAX_MESSAGE_BYTE_SIZE)
 }
 
-//func TestLogMessageEmitSplitsMessagesOnNewlines(t *testing.T) {
-//	received := make(chan *[]byte, 10)
-//	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
-//	e.LoggregatorClient = &MockLoggregatorClient{received}
-//
-//	message := "hi\n\rworld\nhow are you\r\ndoing\r"
-//	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
-//	logMessage.SourceId = proto.String("src_id")
-//	e.EmitLogMessage(logMessage)
-//
-//	assert.Equal(t, len(received), 4)
-//}
+func TestLogMessageEmitSplitsMessagesOnNewlines(t *testing.T) {
+	received := make(chan *[]byte, 10)
+	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	e.LoggregatorClient = &MockLoggregatorClient{received}
+
+	message := "hi\n\rworld\nhow are you\r\ndoing\r"
+	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
+	logMessage.SourceId = proto.String("src_id")
+	e.EmitLogMessage(logMessage)
+
+	assert.Equal(t, len(received), 4)
+}
 
 //func TestLogEnvelopeEmitter(t *testing.T) {
 //	received := make(chan *[]byte, 1)
@@ -240,4 +241,12 @@ func extractLogMessage(t *testing.T, data *[]byte) *logmessage.LogMessage {
 		t.Fatalf("Message invalid. %s", err)
 	}
 	return receivedMessage
+}
+
+func longMessage() string {
+	message := ""
+	for i := 0; i < MAX_MESSAGE_BYTE_SIZE*2; i++ {
+		message += "a"
+	}
+	return message
 }
