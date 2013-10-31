@@ -26,7 +26,7 @@ func (m MockLoggregatorClient) Emit() instrumentation.Context {
 
 func TestEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	e, _ := NewLogMessageEmitter("localhost:3456", "RTR", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedMessage := extractLogMessage(t, <-received)
@@ -38,7 +38,7 @@ func TestEmit(t *testing.T) {
 
 func TestEmitWithNewEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", nil)
+	e, _ := NewEmitter("localhost:3456", "RTR", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedMessage := extractLogMessage(t, <-received)
@@ -50,7 +50,7 @@ func TestEmitWithNewEmitter(t *testing.T) {
 
 func TestLogMessageEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	e, _ := NewLogMessageEmitter("localhost:3456", "RTR", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
 	logMessage := testhelpers.NewLogMessage("test_msg", "test_app_id")
@@ -65,7 +65,7 @@ func TestLogMessageEmit(t *testing.T) {
 
 func TestLogMessageEmitTruncatesLargeMessages(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	e, _ := NewLogMessageEmitter("localhost:3456", "RTR", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
 	message := longMessage()
@@ -83,7 +83,7 @@ func TestLogMessageEmitTruncatesLargeMessages(t *testing.T) {
 
 func TestLogMessageEmitSplitsMessagesOnNewlines(t *testing.T) {
 	received := make(chan *[]byte, 10)
-	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	e, _ := NewLogMessageEmitter("localhost:3456", "RTR", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
 	message := "hi\n\rworld\nhow are you\r\ndoing\r"
@@ -96,7 +96,7 @@ func TestLogMessageEmitSplitsMessagesOnNewlines(t *testing.T) {
 
 func TestLogEnvelopeEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+	e, _ := NewLogEnvelopeEmitter("localhost:3456", "RTR", "42", "secret", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedEnvelope := extractLogEnvelope(t, <-received)
@@ -109,7 +109,7 @@ func TestLogEnvelopeEmitter(t *testing.T) {
 
 func TestLogEnvelopeValidRoutinKeyInTheEnvelope(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+	e, _ := NewLogEnvelopeEmitter("localhost:3456", "RTR", "42", "secret", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedEnvelope := extractLogEnvelope(t, <-received)
@@ -121,7 +121,7 @@ func TestLogEnvelopeSignatureInTheEnvelope(t *testing.T) {
 	sharedKey := "shared key"
 
 	received := make(chan *[]byte, 1)
-	e, _ := NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", sharedKey, nil)
+	e, _ := NewLogEnvelopeEmitter("localhost:3456", "RTR", "42", sharedKey, nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.Emit("appid", "foo")
 	receivedEnvelope := extractLogEnvelope(t, <-received)
@@ -129,40 +129,21 @@ func TestLogEnvelopeSignatureInTheEnvelope(t *testing.T) {
 	assert.True(t, receivedEnvelope.VerifySignature(sharedKey))
 }
 
-var emitters = []func(bool) (*loggregatoremitter, error){
-	func(valid bool) (*loggregatoremitter, error) {
-		if valid {
-			return NewLogMessageEmitter("localhost:38452", "ROUTER", "42", nil)
-		} else {
-			return NewLogMessageEmitter("server", "FOOSERVER", "42", nil)
-		}
+var emitters = []func() (*loggregatoremitter, error){
+	func() (*loggregatoremitter, error) {
+		return NewLogMessageEmitter("localhost:38452", "RTR", "42", nil)
 	},
-	func(valid bool) (*loggregatoremitter, error) {
-		if valid {
-			return NewEmitter("localhost:38452", "ROUTER", "42", nil)
-		} else {
-			return NewEmitter("server", "FOOSERVER", "42", nil)
-		}
+	func() (*loggregatoremitter, error) {
+		return NewEmitter("localhost:38452", "RTR", "42", nil)
 	},
-	func(valid bool) (*loggregatoremitter, error) {
-		if valid {
-			return NewLogEnvelopeEmitter("localhost:38452", "ROUTER", "42", "secret", nil)
-		} else {
-			return NewLogEnvelopeEmitter("server", "FOOSERVER", "42", "secret", nil)
-		}
+	func() (*loggregatoremitter, error) {
+		return NewLogEnvelopeEmitter("localhost:38452", "RTR", "42", "secret", nil)
 	},
 }
 
-func TestLogEnvelopeInvalidSourcetype(t *testing.T) {
+func TestLogEnvelopeValid(t *testing.T) {
 	for _, emitter := range emitters {
-		_, err := emitter(false)
-		assert.Error(t, err)
-	}
-}
-
-func TestLogEnvelopeValidSourcetype(t *testing.T) {
-	for _, emitter := range emitters {
-		_, err := emitter(true)
+		_, err := emitter()
 		assert.NoError(t, err)
 	}
 }
@@ -170,7 +151,7 @@ func TestLogEnvelopeValidSourcetype(t *testing.T) {
 func TestLogEnvelopeEmptyAppIdDoesNotEmit(t *testing.T) {
 	for _, emitter := range emitters {
 		received := make(chan *[]byte, 1)
-		e, _ := emitter(true)
+		e, _ := emitter()
 		e.LoggregatorClient = &MockLoggregatorClient{received}
 
 		e.Emit("", "foo")
@@ -195,7 +176,7 @@ func TestLogEnvelopeEmptyMessageDoesNotEmit(t *testing.T) {
 	for _, emitter := range emitters {
 
 		received := make(chan *[]byte, 1)
-		e, _ := emitter(true)
+		e, _ := emitter()
 		e.LoggregatorClient = &MockLoggregatorClient{received}
 
 		e.Emit("appId", "")
