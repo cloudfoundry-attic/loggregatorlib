@@ -35,7 +35,15 @@ func (m *Message) GetRawMessageLength() uint32 {
 }
 
 func (m *Message) GetShortSourceTypeName() string {
-	return m.logMessage.GetSourceType()
+	sourceTypeNames := map[LogMessage_SourceType]string{
+		LogMessage_CLOUD_CONTROLLER: "API",
+		LogMessage_ROUTER:           "RTR",
+		LogMessage_UAA:              "UAA",
+		LogMessage_DEA:              "DEA",
+		LogMessage_WARDEN_CONTAINER: "App",
+	}
+
+	return sourceTypeNames[m.logMessage.GetSourceType()]
 }
 
 func (m *Message) parseProtoBuffer(data []byte) error {

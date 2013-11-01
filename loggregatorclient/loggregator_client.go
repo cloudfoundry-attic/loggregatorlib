@@ -28,7 +28,7 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 		receivedByteCount: new(uint64), sentByteCount: new(uint64)}
 
 	la, err := net.ResolveUDPAddr("udp", loggregatorAddress)
-	if err != nil || la == nil || la.IP == nil {
+	if err != nil {
 		logger.Fatalf("Error resolving loggregator address %s, %s", loggregatorAddress, err)
 	}
 

@@ -2,6 +2,7 @@ package emitter
 
 import (
 	"code.google.com/p/gogoprotobuf/proto"
+	"fmt"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
@@ -23,7 +24,7 @@ type Emitter interface {
 
 type loggregatoremitter struct {
 	LoggregatorClient loggregatorclient.LoggregatorClient
-	st                string
+	st                logmessage.LogMessage_SourceType
 	sId               string
 	sharedSecret      string
 	logger            *gosteno.Logger
@@ -96,7 +97,13 @@ func NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, sharedSecret
 
 	e = &loggregatoremitter{sharedSecret: sharedSecret}
 
-	e.st = sourceType
+	if name, ok := logmessage.LogMessage_SourceType_value[sourceType]; ok {
+		e.st = logmessage.LogMessage_SourceType(name)
+	} else {
+
+		err = fmt.Errorf("Unable to map SourceType [%s] to a logmessage.LogMessage_SourceType", sourceType)
+		return
+	}
 
 	e.logger = logger
 	e.LoggregatorClient = loggregatorclient.NewLoggregatorClient(loggregatorServer, logger, loggregatorclient.DefaultBufferSize)
