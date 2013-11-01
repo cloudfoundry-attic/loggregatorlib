@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+	"strconv"
+	"math/rand"
 )
 
 const SECOND = int64(1 * time.Second)
@@ -40,6 +42,7 @@ func TestEmitWithNewEmitter(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewEmitter("localhost:3456", "RTR", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
+
 	e.Emit("appid", "foo")
 	receivedMessage := extractLogMessage(t, <-received)
 
@@ -63,32 +66,33 @@ func TestLogMessageEmit(t *testing.T) {
 	assert.Equal(t, receivedMessage.GetSourceId(), "src_id")
 }
 
-func TestLogMessageEmitTruncatesLargeMessages(t *testing.T) {
+func TestEmitLogMessageTruncatesLargeMessages(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := NewLogMessageEmitter("localhost:3456", "RTR", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
 	message := longMessage()
-
 	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
-	logMessage.SourceId = proto.String("src_id")
-	e.EmitLogMessage(logMessage)
-	receivedMessage := extractLogMessage(t, <-received)
 
+	e.EmitLogMessage(logMessage)
+
+	receivedMessage := extractLogMessage(t, <-received)
 	receivedMessageText := receivedMessage.GetMessage()
-	trucatedOffset := len(receivedMessageText) - len(TRUNCATED_BYTES)
-	assert.Equal(t, receivedMessageText[trucatedOffset:], TRUNCATED_BYTES)
+
+	truncatedOffset := len(receivedMessageText) - len(TRUNCATED_BYTES)
+	expectedBytes := append([]byte(message)[:truncatedOffset], TRUNCATED_BYTES...)
+
+	assert.Equal(t, receivedMessageText, expectedBytes)
 	assert.True(t, len(receivedMessageText) >= MAX_MESSAGE_BYTE_SIZE)
 }
 
-func TestLogMessageEmitSplitsMessagesOnNewlines(t *testing.T) {
+func TestEmitLogMessageSplitsMessagesOnNewlines(t *testing.T) {
 	received := make(chan *[]byte, 10)
+	message := "message1\n\rmessage2\nmessage3\r\nmessage4\r"
+	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
+
 	e, _ := NewLogMessageEmitter("localhost:3456", "RTR", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
-
-	message := "hi\n\rworld\nhow are you\r\ndoing\r"
-	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
-	logMessage.SourceId = proto.String("src_id")
 	e.EmitLogMessage(logMessage)
 
 	assert.Equal(t, len(received), 4)
@@ -222,7 +226,7 @@ func extractLogMessage(t *testing.T, data *[]byte) *logmessage.LogMessage {
 func longMessage() string {
 	message := ""
 	for i := 0; i < MAX_MESSAGE_BYTE_SIZE*2; i++ {
-		message += "a"
+		message += strconv.Itoa(rand.Int() % 10)
 	}
 	return message
 }

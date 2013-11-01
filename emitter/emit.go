@@ -57,20 +57,17 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 			continue
 		}
 
-		message := logMessage.Message
 		if len(message) > MAX_MESSAGE_BYTE_SIZE {
 			logMessage.Message = append([]byte(message)[0:TRUNCATED_OFFSET], TRUNCATED_BYTES...)
 		} else {
 			logMessage.Message = []byte(message)
 		}
-
 		if e.sharedSecret == "" {
 			marshalledLogMessage, err := proto.Marshal(logMessage)
 			if err != nil {
 				e.logger.Errorf("Error marshalling message: %s", err)
 				return
 			}
-			e.logger.Debugf("Sent LogMessage: %s", logMessage.String())
 			e.LoggregatorClient.Send(marshalledLogMessage)
 		} else {
 			logEnvelope := e.newLogEnvelope(*logMessage.AppId, logMessage)
@@ -79,7 +76,6 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 				e.logger.Errorf("Error marshalling envelope: %s", err)
 				return
 			}
-			e.logger.Debugf("Sent LogEnvelope: %s", logEnvelope.String())
 			e.LoggregatorClient.Send(marshalledLogEnvelope)
 		}
 	}

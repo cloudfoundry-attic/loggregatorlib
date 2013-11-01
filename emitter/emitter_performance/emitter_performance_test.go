@@ -1,17 +1,47 @@
 package emitter_performance
 
 import (
-	"code.google.com/p/gogoprotobuf/proto"
-	"fmt"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"github.com/cloudfoundry/loggregatorlib/emitter"
-	"github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+	"strings"
 )
 
-const SECOND = int64(1 * time.Second)
+// Reduce iterations for faster test suite performance
+const (
+	SECOND = float64(1*time.Second)
+	ITERATIONS = 1000
+)
+
+type messageFixture struct {
+	name                string
+	message             string
+	logMessageExpected  float64
+	logEnvelopeExpected float64
+}
+
+func (mf *messageFixture) getExpected(isEnvelope bool) float64 {
+	if isEnvelope {
+		return mf.logEnvelopeExpected
+	}
+	return mf.logMessageExpected
+}
+
+var messageFixtures = []*messageFixture {
+	{"long message", longMessage(), 1*SECOND, 2*SECOND},
+	{"message with newlines", messageWithNewlines(), 2*SECOND, 4*SECOND},
+	{"message worst case", longMessage() + "\n", 1*SECOND, 1*SECOND},
+}
+
+
+func longMessage() string {
+	return strings.Repeat("a", emitter.MAX_MESSAGE_BYTE_SIZE*2)
+}
+
+func messageWithNewlines() string {
+	return strings.Repeat(strings.Repeat("a", 6*1024) + "\n", 10)
+}
 
 type MockLoggregatorClient struct {
 	received chan *[]byte
@@ -25,48 +55,41 @@ func (m MockLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{}
 }
 
-func Test1000LogMessageEmit(t *testing.T) {
+
+func TestLogMessageEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, _ := emitter.NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
-	message := longMessage()
-
-	startTime := time.Now().UnixNano()
-	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
-	logMessage.SourceId = proto.String("src_id")
-	for i := 0; i < 1000; i++ {
-		e.EmitLogMessage(logMessage)
-		<-received
-	}
-
-	elapsedTime := time.Now().UnixNano() - startTime
-	assert.True(t, elapsedTime < SECOND, fmt.Sprintf("Elapsed time should have been below 1s, but was %vs", float64(elapsedTime)/float64(SECOND)))
+	testEmitHelper(t, e, received, false)
 }
 
-func Test1000LogEnvelopeEmit(t *testing.T) {
+func TestLogEnvelopeEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := emitter.NewLogEnvelopeEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+	e, _ := emitter.NewLogEnvelopeEmitter("localhost:3457", "ROUTER", "42", "secret", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
-	message := longMessage()
-
-	startTime := time.Now().UnixNano()
-	for i := 0; i < 1000; i++ {
-		e.Emit("appid", message)
-		<-received
-	}
-
-	elapsedTime := time.Now().UnixNano() - startTime
-	s := fmt.Sprintf("Elapsed time should have been below 1s, but was %v s", float64(elapsedTime/SECOND))
-	println(s)
-	assert.True(t, elapsedTime < 2*SECOND, fmt.Sprintf("Elapsed time should have been below 2s, but was %vs", float64(elapsedTime)/float64(SECOND)))
+	testEmitHelper(t, e, received, true)
 }
 
-func longMessage() string {
-	message := ""
-	for i := 0; i < emitter.MAX_MESSAGE_BYTE_SIZE*2; i++ {
-		message += "a"
+func testEmitHelper(t *testing.T, e emitter.Emitter, received chan *[]byte, isEnvelope bool) {
+	go func() {
+		for {
+			<-received
+		}
+	}()
+
+	for _, fixture := range messageFixtures {
+		startTime := time.Now().UnixNano()
+
+		for i := 0; i < ITERATIONS; i++ {
+			e.Emit("appid", fixture.message)
+		}
+		elapsedTime := float64(time.Now().UnixNano() - startTime)
+
+		expected := fixture.getExpected(isEnvelope)
+		if elapsedTime > expected {
+			t.Errorf("Elapsed time for %s should have been below %vs, but was %vs", fixture.name, expected/SECOND, float64(elapsedTime)/SECOND)
+		}
 	}
-	return message
 }
