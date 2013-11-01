@@ -6,10 +6,10 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
+	"strconv"
 	"testing"
 	"time"
-	"strconv"
-	"math/rand"
 )
 
 const SECOND = int64(1 * time.Second)

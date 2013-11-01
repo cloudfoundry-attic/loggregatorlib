@@ -3,14 +3,14 @@ package emitter_performance
 import (
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"github.com/cloudfoundry/loggregatorlib/emitter"
+	"strings"
 	"testing"
 	"time"
-	"strings"
 )
 
 // Reduce iterations for faster test suite performance
 const (
-	SECOND = float64(1*time.Second)
+	SECOND     = float64(1 * time.Second)
 	ITERATIONS = 1000
 )
 
@@ -28,19 +28,18 @@ func (mf *messageFixture) getExpected(isEnvelope bool) float64 {
 	return mf.logMessageExpected
 }
 
-var messageFixtures = []*messageFixture {
-	{"long message", longMessage(), 1*SECOND, 2*SECOND},
-	{"message with newlines", messageWithNewlines(), 2*SECOND, 4*SECOND},
-	{"message worst case", longMessage() + "\n", 1*SECOND, 1*SECOND},
+var messageFixtures = []*messageFixture{
+	{"long message", longMessage(), 1 * SECOND, 2 * SECOND},
+	{"message with newlines", messageWithNewlines(), 2 * SECOND, 4 * SECOND},
+	{"message worst case", longMessage() + "\n", 1 * SECOND, 1 * SECOND},
 }
-
 
 func longMessage() string {
 	return strings.Repeat("a", emitter.MAX_MESSAGE_BYTE_SIZE*2)
 }
 
 func messageWithNewlines() string {
-	return strings.Repeat(strings.Repeat("a", 6*1024) + "\n", 10)
+	return strings.Repeat(strings.Repeat("a", 6*1024)+"\n", 10)
 }
 
 type MockLoggregatorClient struct {
@@ -54,7 +53,6 @@ func (m MockLoggregatorClient) Send(data []byte) {
 func (m MockLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{}
 }
-
 
 func TestLogMessageEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
