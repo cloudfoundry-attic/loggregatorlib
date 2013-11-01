@@ -30,7 +30,7 @@ func (mf *messageFixture) getExpected(isEnvelope bool) float64 {
 
 var messageFixtures = []*messageFixture{
 	{"long message", longMessage(), 1 * SECOND, 2 * SECOND},
-	{"message with newlines", messageWithNewlines(), 2 * SECOND, 4 * SECOND},
+	{"message with newlines", messageWithNewlines(), 3 * SECOND, 4 * SECOND},
 	{"message worst case", longMessage() + "\n", 1 * SECOND, 1 * SECOND},
 }
 
