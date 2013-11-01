@@ -2,7 +2,6 @@ package logmessage
 
 import (
 	"code.google.com/p/gogoprotobuf/proto"
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -14,7 +13,7 @@ func TestExtractionFromMessage(t *testing.T) {
 	unmarshalledMessage := NewLogMessage(t, appMessageString, "myApp")
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 
-	message, err := ParseProtobuffer(marshalledMessage, loggertesthelper.Logger())
+	message, err := ParseProtobuffer(marshalledMessage)
 	assert.NoError(t, err)
 
 	assert.Equal(t, uint32(36), message.GetRawMessageLength())
@@ -30,7 +29,7 @@ func TestExtractionFromEnvelope(t *testing.T) {
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 	marshalledEnvelope := MarshalledLogEnvelope(t, unmarshalledMessage, "some secret")
 
-	message, err := ParseProtobuffer(marshalledEnvelope, loggertesthelper.Logger())
+	message, err := ParseProtobuffer(marshalledEnvelope)
 	assert.NoError(t, err)
 
 	assert.Equal(t, uint32(36), message.GetRawMessageLength())

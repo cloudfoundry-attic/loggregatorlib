@@ -2,7 +2,6 @@ package logmessage
 
 import (
 	"code.google.com/p/gogoprotobuf/proto"
-	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/signature"
 )
 
@@ -12,10 +11,10 @@ type Message struct {
 	rawMessageLength uint32
 }
 
-func ParseProtobuffer(data []byte, logger *gosteno.Logger) (*Message, error) {
+func ParseProtobuffer(data []byte) (*Message, error) {
 	message := &Message{}
 
-	err := message.parseProtoBuffer(data, logger)
+	err := message.parseProtoBuffer(data)
 	if err != nil {
 		return nil, err
 	}
@@ -39,17 +38,15 @@ func (m *Message) GetShortSourceTypeName() string {
 	return m.logMessage.GetSourceType()
 }
 
-func (m *Message) parseProtoBuffer(data []byte, logger *gosteno.Logger) error {
+func (m *Message) parseProtoBuffer(data []byte) error {
 	logMessage := new(LogMessage)
 	err := proto.Unmarshal(data, logMessage)
 	if err == nil {
 		m.logMessage = logMessage
 		m.rawMessage = data
 		m.rawMessageLength = uint32(len(m.rawMessage))
-		logger.Debugf("Data unmarshalled into LogMessage: %s.", logMessage.String())
 		return nil
 	}
-	logger.Debugf("Error unmarshalling into LogMessage: %s.", err)
 
 	logEnvelope := new(LogEnvelope)
 	err = proto.Unmarshal(data, logEnvelope)
@@ -58,15 +55,12 @@ func (m *Message) parseProtoBuffer(data []byte, logger *gosteno.Logger) error {
 		m.rawMessage, err = proto.Marshal(m.logMessage)
 		if err == nil {
 			m.rawMessageLength = uint32(len(m.rawMessage))
-			logger.Debugf("Data unmarshalled into LogEnvelope: %s.", logEnvelope.String())
 			return nil
 		}
-		logger.Debugf("Error marshaling into rawMessage: %s.", err)
 		m.rawMessageLength = uint32(len(m.rawMessage))
 		return err
 	}
 
-	logger.Debugf("Error unmarshalling into LogEnvelope: %s.", err)
 	return err
 }
 
