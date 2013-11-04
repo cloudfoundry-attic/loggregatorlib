@@ -43,7 +43,12 @@ func (m *Message) GetShortSourceTypeName() string {
 		LogMessage_WARDEN_CONTAINER: "App",
 	}
 
-	return sourceTypeNames[m.logMessage.GetSourceType()]
+	sourceName := sourceTypeNames[m.logMessage.GetSourceType()]
+	if sourceName == "" {
+		sourceName = m.logMessage.GetSourceName()
+	}
+
+	return sourceName
 }
 
 func (m *Message) parseProtoBuffer(data []byte) error {

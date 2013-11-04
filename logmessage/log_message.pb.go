@@ -58,6 +58,7 @@ const (
 	LogMessage_DEA              LogMessage_SourceType = 4
 	LogMessage_WARDEN_CONTAINER LogMessage_SourceType = 5
 	LogMessage_LOGGREGATOR      LogMessage_SourceType = 6
+	LogMessage_UNKNOWN          LogMessage_SourceType = 7
 )
 
 var LogMessage_SourceType_name = map[int32]string{
@@ -67,6 +68,7 @@ var LogMessage_SourceType_name = map[int32]string{
 	4: "DEA",
 	5: "WARDEN_CONTAINER",
 	6: "LOGGREGATOR",
+	7: "UNKNOWN",
 }
 var LogMessage_SourceType_value = map[string]int32{
 	"CLOUD_CONTROLLER": 1,
@@ -75,6 +77,7 @@ var LogMessage_SourceType_value = map[string]int32{
 	"DEA":              4,
 	"WARDEN_CONTAINER": 5,
 	"LOGGREGATOR":      6,
+	"UNKNOWN":          7,
 }
 
 func (x LogMessage_SourceType) Enum() *LogMessage_SourceType {
@@ -105,6 +108,7 @@ type LogMessage struct {
 	SourceType       *LogMessage_SourceType  `protobuf:"varint,5,req,name=source_type,enum=logmessage.LogMessage_SourceType" json:"source_type,omitempty"`
 	SourceId         *string                 `protobuf:"bytes,6,opt,name=source_id" json:"source_id,omitempty"`
 	DrainUrls        []string                `protobuf:"bytes,7,rep,name=drain_urls" json:"drain_urls,omitempty"`
+	SourceName       *string                 `protobuf:"bytes,8,opt,name=source_name" json:"source_name,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
 }
 
@@ -159,6 +163,13 @@ func (m *LogMessage) GetDrainUrls() []string {
 		return m.DrainUrls
 	}
 	return nil
+}
+
+func (m *LogMessage) GetSourceName() string {
+	if m != nil && m.SourceName != nil {
+		return *m.SourceName
+	}
+	return ""
 }
 
 type LogEnvelope struct {

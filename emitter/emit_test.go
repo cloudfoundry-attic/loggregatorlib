@@ -133,40 +133,47 @@ func TestLogEnvelopeSignatureInTheEnvelope(t *testing.T) {
 	assert.True(t, receivedEnvelope.VerifySignature(sharedKey))
 }
 
-var emitters = []func(bool) (*loggregatoremitter, error){
-	func(valid bool) (*loggregatoremitter, error) {
-		if valid {
-			return NewLogMessageEmitter("localhost:38452", "ROUTER", "42", nil)
-		} else {
-			return NewLogMessageEmitter("server", "FOOSERVER", "42", nil)
-		}
-	},
-	func(valid bool) (*loggregatoremitter, error) {
-		if valid {
-			return NewEmitter("localhost:38452", "ROUTER", "42", nil)
-		} else {
-			return NewEmitter("server", "FOOSERVER", "42", nil)
-		}
-	},
-	func(valid bool) (*loggregatoremitter, error) {
-		if valid {
-			return NewLogEnvelopeEmitter("localhost:38452", "ROUTER", "42", "secret", nil)
-		} else {
-			return NewLogEnvelopeEmitter("server", "FOOSERVER", "42", "secret", nil)
-		}
-	},
+func TestSourceNameIsSetToSourceTypeIfMappingExists(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, err := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
+	assert.NoError(t, err)
+	e.LoggregatorClient = &MockLoggregatorClient{received}
+
+	e.Emit("test_app_id", "test_msg")
+	receivedMessage := extractLogMessage(t, <-received)
+
+	assert.Equal(t, receivedMessage.GetSourceName(), "ROUTER")
+	assert.Equal(t, receivedMessage.GetSourceType(), logmessage.LogMessage_ROUTER)
 }
 
-func TestLogEnvelopeInvalidSourcetype(t *testing.T) {
-	for _, emitter := range emitters {
-		_, err := emitter(false)
-		assert.Error(t, err)
-	}
+func TestSourceNameIsSetIfMappingIsUnknown(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, err := NewLogMessageEmitter("localhost:3456", "RTR", "42", nil)
+	assert.NoError(t, err)
+	e.LoggregatorClient = &MockLoggregatorClient{received}
+
+	e.Emit("test_app_id", "test_msg")
+	receivedMessage := extractLogMessage(t, <-received)
+
+	assert.Equal(t, receivedMessage.GetSourceName(), "RTR")
+	assert.Equal(t, receivedMessage.GetSourceType(), logmessage.LogMessage_UNKNOWN)
+}
+
+var emitters = []func() (*loggregatoremitter, error){
+	func() (*loggregatoremitter, error) {
+		return NewLogMessageEmitter("localhost:38452", "ROUTER", "42", nil)
+	},
+	func() (*loggregatoremitter, error) {
+		return NewEmitter("localhost:38452", "ROUTER", "42", nil)
+	},
+	func() (*loggregatoremitter, error) {
+		return NewLogEnvelopeEmitter("localhost:38452", "ROUTER", "42", "secret", nil)
+	},
 }
 
 func TestLogEnvelopeValidSourcetype(t *testing.T) {
 	for _, emitter := range emitters {
-		_, err := emitter(true)
+		_, err := emitter()
 		assert.NoError(t, err)
 	}
 }
@@ -174,7 +181,7 @@ func TestLogEnvelopeValidSourcetype(t *testing.T) {
 func TestLogEnvelopeEmptyAppIdDoesNotEmit(t *testing.T) {
 	for _, emitter := range emitters {
 		received := make(chan *[]byte, 1)
-		e, _ := emitter(true)
+		e, _ := emitter()
 		e.LoggregatorClient = &MockLoggregatorClient{received}
 
 		e.Emit("", "foo")
@@ -199,7 +206,7 @@ func TestLogEnvelopeEmptyMessageDoesNotEmit(t *testing.T) {
 	for _, emitter := range emitters {
 
 		received := make(chan *[]byte, 1)
-		e, _ := emitter(true)
+		e, _ := emitter()
 		e.LoggregatorClient = &MockLoggregatorClient{received}
 
 		e.Emit("appId", "")
