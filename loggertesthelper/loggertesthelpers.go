@@ -31,3 +31,20 @@ func getLogger(debug bool) *gosteno.Logger {
 
 	return gosteno.NewLogger("TestLogger")
 }
+
+func FileLogger(path string) *gosteno.Logger {
+	level := gosteno.LOG_DEBUG
+
+	loggingConfig := &gosteno.Config{
+		Sinks:     make([]gosteno.Sink, 1),
+		Level:     level,
+		Codec:     gosteno.NewJsonCodec(),
+		EnableLOC: true,
+	}
+
+	loggingConfig.Sinks[0] = gosteno.NewFileSink(path)
+
+	gosteno.Init(loggingConfig)
+
+	return gosteno.NewLogger("TestLogger")
+}
