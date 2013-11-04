@@ -82,27 +82,26 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 	}
 }
 
-func NewEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
+func NewEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (*loggregatoremitter, error) {
 	return NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, "", logger)
 }
 
-func NewLogMessageEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
+func NewLogMessageEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (*loggregatoremitter, error) {
 	return NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, "", logger)
 }
 
-func NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, sharedSecret string, logger *gosteno.Logger) (e *loggregatoremitter, err error) {
+func NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, sharedSecret string, logger *gosteno.Logger) (*loggregatoremitter, error) {
 	if logger == nil {
 		logger = gosteno.NewLogger("loggregatorlib.emitter")
 	}
 
-	e = &loggregatoremitter{sharedSecret: sharedSecret}
+	e := &loggregatoremitter{sharedSecret: sharedSecret}
 
 	if name, ok := logmessage.LogMessage_SourceType_value[sourceType]; ok {
 		e.st = logmessage.LogMessage_SourceType(name)
 	} else {
-
-		err = fmt.Errorf("Unable to map SourceType [%s] to a logmessage.LogMessage_SourceType", sourceType)
-		return
+		err := fmt.Errorf("Unable to map SourceType [%s] to a logmessage.LogMessage_SourceType", sourceType)
+		return nil, err
 	}
 
 	e.logger = logger
@@ -110,7 +109,7 @@ func NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, sharedSecret
 	e.sId = sourceId
 
 	e.logger.Debugf("Created new loggregator emitter: %#v", e)
-	return
+	return e, nil
 }
 
 func (e *loggregatoremitter) newLogMessage(appId, message string) *logmessage.LogMessage {

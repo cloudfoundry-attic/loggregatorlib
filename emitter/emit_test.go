@@ -91,7 +91,7 @@ func TestEmitLogMessageSplitsMessagesOnNewlines(t *testing.T) {
 	message := "message1\n\rmessage2\nmessage3\r\nmessage4\r"
 	logMessage := testhelpers.NewLogMessage(message, "test_app_id")
 
-	e, _ := NewLogMessageEmitter("localhost:3456", "RTR", "42", nil)
+	e, _ := NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 	e.EmitLogMessage(logMessage)
 
