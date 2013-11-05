@@ -7,13 +7,14 @@ Create an emitter with NewLogMessageEmitter with the loggregator trafficcontroll
 
 Call Emit on the emitter with the application GUID and message strings.
 
-### Valid source types are:
+### A valid source name is any 3 character string.   Some common component sources are:
 
  	API (Cloud Controller)
  	RTR (Go Router)
  	UAA
  	DEA
  	APP (Warden container)
+ 	LGR (Loggregator)
 
 ###Sample Workflow
 
