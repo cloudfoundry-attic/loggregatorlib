@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const SECOND = int64(1*time.Second)
+const SECOND = int64(1 * time.Second)
 
 type MockLoggregatorClient struct {
 	received chan *[]byte
@@ -194,7 +194,7 @@ func extractLogMessage(t *testing.T, data *[]byte) *logmessage.LogMessage {
 func longMessage() string {
 	message := ""
 	for i := 0; i < MAX_MESSAGE_BYTE_SIZE*2; i++ {
-		message += strconv.Itoa(rand.Int()%10)
+		message += strconv.Itoa(rand.Int() % 10)
 	}
 	return message
 }
