@@ -3,11 +3,11 @@ loggregatorlib/emitter
 
 This is a GO library to emit messages to the loggregator.
 
-Create an emitter with NewLogMessageEmitter with the loggregator trafficcontroller hostname and port, source type, the loggregator shared secret, and a gosteno logger.
+Create an emitter with NewLogMessageEmitter with the loggregator trafficcontroller hostname and port, a source name, the loggregator shared secret, and a gosteno logger.
 
 Call Emit on the emitter with the application GUID and message strings.
 
-### A valid source name is any 3 character string.   Some common component sources are:
+##### A valid source name is any 3 character string.   Some common component sources are:
 
  	API (Cloud Controller)
  	RTR (Go Router)
