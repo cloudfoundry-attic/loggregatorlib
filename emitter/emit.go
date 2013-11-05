@@ -86,15 +86,7 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 	}
 }
 
-func NewEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (*loggregatoremitter, error) {
-	return NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, "", logger)
-}
-
-func NewLogMessageEmitter(loggregatorServer, sourceType, sourceId string, logger *gosteno.Logger) (*loggregatoremitter, error) {
-	return NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, "", logger)
-}
-
-func NewLogEnvelopeEmitter(loggregatorServer, sourceType, sourceId, sharedSecret string, logger *gosteno.Logger) (*loggregatoremitter, error) {
+func NewEmitter(loggregatorServer, sourceType, sourceId, sharedSecret string, logger *gosteno.Logger) (*loggregatoremitter, error) {
 	if logger == nil {
 		logger = gosteno.NewLogger("loggregatorlib.emitter")
 	}

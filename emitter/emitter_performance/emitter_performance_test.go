@@ -54,17 +54,9 @@ func (m MockLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{}
 }
 
-func TestLogMessageEmit(t *testing.T) {
-	received := make(chan *[]byte, 1)
-	e, _ := emitter.NewLogMessageEmitter("localhost:3456", "ROUTER", "42", nil)
-	e.LoggregatorClient = &MockLoggregatorClient{received}
-
-	testEmitHelper(t, e, received, false)
-}
-
 func TestLogEnvelopeEmit(t *testing.T) {
 	received := make(chan *[]byte, 1)
-	e, _ := emitter.NewLogEnvelopeEmitter("localhost:3457", "ROUTER", "42", "secret", nil)
+	e, _ := emitter.NewEmitter("localhost:3457", "ROUTER", "42", "secret", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
 	testEmitHelper(t, e, received, true)
