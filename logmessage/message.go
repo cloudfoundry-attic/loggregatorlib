@@ -2,6 +2,7 @@ package logmessage
 
 import (
 	"code.google.com/p/gogoprotobuf/proto"
+	"errors"
 	"github.com/cloudfoundry/loggregatorlib/signature"
 )
 
@@ -11,10 +12,10 @@ type Message struct {
 	rawMessageLength uint32
 }
 
-func ParseProtobuffer(data []byte) (*Message, error) {
+func ParseProtobuffer(data []byte, secret string) (*Message, error) {
 	message := &Message{}
 
-	err := message.parseProtoBuffer(data)
+	err := message.parseProtoBuffer(data, secret)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func (m *Message) GetShortSourceTypeName() string {
 	return sourceName
 }
 
-func (m *Message) parseProtoBuffer(data []byte) error {
+func (m *Message) parseProtoBuffer(data []byte, secret string) error {
 	logMessage := new(LogMessage)
 	err := proto.Unmarshal(data, logMessage)
 	if err == nil {
@@ -64,6 +65,10 @@ func (m *Message) parseProtoBuffer(data []byte) error {
 	logEnvelope := new(LogEnvelope)
 	err = proto.Unmarshal(data, logEnvelope)
 	if err == nil {
+		if !logEnvelope.VerifySignature(secret) {
+			return errors.New("Invalid Envelope Signature")
+		}
+
 		m.logMessage = logEnvelope.LogMessage
 		m.rawMessage, err = proto.Marshal(m.logMessage)
 		if err == nil {

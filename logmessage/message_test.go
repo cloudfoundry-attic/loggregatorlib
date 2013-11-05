@@ -13,7 +13,7 @@ func TestExtractionFromMessage(t *testing.T) {
 	unmarshalledMessage := NewLogMessageWithSourceType(t, appMessageString, LogMessage_WARDEN_CONTAINER, "myApp")
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 
-	message, err := ParseProtobuffer(marshalledMessage)
+	message, err := ParseProtobuffer(marshalledMessage, "")
 	assert.NoError(t, err)
 
 	assert.Equal(t, uint32(51), message.GetRawMessageLength())
@@ -37,7 +37,7 @@ func TestGetShortSourceTypeNameReturnsTheTypeIfMappingExists(t *testing.T) {
 		unmarshalledMessage := NewLogMessageWithSourceType(t, appMessageString, sourceType, "myApp")
 		marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 
-		message, err := ParseProtobuffer(marshalledMessage)
+		message, err := ParseProtobuffer(marshalledMessage, "")
 		assert.NoError(t, err)
 
 		assert.Equal(t, abbreviation, message.GetShortSourceTypeName())
@@ -50,26 +50,37 @@ func TestGetShortSourceTypeNameReturnsTheSourceNameTypeIfMappingDoesNotExist(t *
 	unmarshalledMessage := NewLogMessageWithSourceName(t, appMessageString, "STG", "myApp")
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 
-	message, err := ParseProtobuffer(marshalledMessage)
+	message, err := ParseProtobuffer(marshalledMessage, "")
 	assert.NoError(t, err)
 
 	assert.Equal(t, "STG", message.GetShortSourceTypeName())
 }
 
-func TestExtractionFromEnvelope(t *testing.T) {
+func TestExtractionFromEnvelopeWithValidSignature(t *testing.T) {
 	appMessageString := "AppMessage"
 
 	unmarshalledMessage := NewLogMessageWithSourceType(t, appMessageString, LogMessage_WARDEN_CONTAINER, "myApp")
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 	marshalledEnvelope := MarshalledLogEnvelope(t, unmarshalledMessage, "some secret")
 
-	message, err := ParseProtobuffer(marshalledEnvelope)
+	message, err := ParseProtobuffer(marshalledEnvelope, "some secret")
 	assert.NoError(t, err)
 
 	assert.Equal(t, 51, len(message.GetRawMessage()))
 	assert.Equal(t, marshalledMessage, message.GetRawMessage())
 	assert.Equal(t, unmarshalledMessage, message.GetLogMessage())
 	assert.Equal(t, "App", message.GetShortSourceTypeName())
+}
+
+func TestExtractionFromEnvelopeWithInvalidSignature(t *testing.T) {
+	appMessageString := "AppMessage"
+
+	unmarshalledMessage := NewLogMessageWithSourceType(t, appMessageString, LogMessage_WARDEN_CONTAINER, "myApp")
+	marshalledEnvelope := MarshalledLogEnvelope(t, unmarshalledMessage, "some secret")
+
+	_, err := ParseProtobuffer(marshalledEnvelope, "invalid secret")
+	assert.NotNil(t, err)
+
 }
 
 func TestExtractEnvelopeFromRawBytes(t *testing.T) {
