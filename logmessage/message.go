@@ -12,6 +12,11 @@ type Message struct {
 	rawMessageLength uint32
 }
 
+func ParseMessage(data []byte) (*Message, error) {
+	logMessage, err := parseLogMessage(data)
+	return &Message{logMessage, data, uint32(len(data))}, err
+}
+
 func ParseProtobuffer(data []byte, secret string) (*Message, error) {
 	message := &Message{}
 
