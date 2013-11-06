@@ -68,6 +68,12 @@ func NewMessage(t *testing.T, messageString, appId string) *logmessage.Message {
 	return logmessage.NewMessage(logMessage, marshalledLogMessage)
 }
 
+func MarshalledLogEnvelopeForMessage(t *testing.T, msg, appName, secret string, drainUrls ...string) []byte {
+	logMessage := NewLogMessage(msg, appName)
+	logMessage.DrainUrls = drainUrls
+	return MarshalledLogEnvelope(t, logMessage, secret)
+}
+
 func MarshalledLogEnvelope(t *testing.T, unmarshalledMessage *logmessage.LogMessage, secret string) []byte {
 	envelope := &logmessage.LogEnvelope{
 		LogMessage: unmarshalledMessage,
