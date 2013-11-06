@@ -17,14 +17,24 @@ func ParseMessage(data []byte) (*Message, error) {
 	return &Message{logMessage, data, uint32(len(data))}, err
 }
 
-func ParseProtobuffer(data []byte, secret string) (*Message, error) {
-	message := &Message{}
+func ParseEnvelope(data []byte, secret string) (message *Message, err error) {
+	message = &Message{}
+	logEnvelope := &LogEnvelope{}
 
-	err := message.parseProtoBuffer(data, secret)
+	if err := proto.Unmarshal(data, logEnvelope); err != nil {
+		return nil, err
+	}
+	if !logEnvelope.VerifySignature(secret) {
+		return nil, errors.New("Invalid Envelope Signature")
+	}
+
+	message.rawMessage, err = proto.Marshal(logEnvelope.LogMessage)
 	if err != nil {
 		return nil, err
 	}
 
+	message.logMessage = logEnvelope.LogMessage
+	message.rawMessageLength = uint32(len(message.rawMessage))
 	return message, nil
 }
 
@@ -55,36 +65,6 @@ func (m *Message) GetShortSourceTypeName() string {
 	}
 
 	return sourceName
-}
-
-func (m *Message) parseProtoBuffer(data []byte, secret string) error {
-	logMessage := new(LogMessage)
-	err := proto.Unmarshal(data, logMessage)
-	if err == nil {
-		m.logMessage = logMessage
-		m.rawMessage = data
-		m.rawMessageLength = uint32(len(m.rawMessage))
-		return nil
-	}
-
-	logEnvelope := new(LogEnvelope)
-	err = proto.Unmarshal(data, logEnvelope)
-	if err == nil {
-		if !logEnvelope.VerifySignature(secret) {
-			return errors.New("Invalid Envelope Signature")
-		}
-
-		m.logMessage = logEnvelope.LogMessage
-		m.rawMessage, err = proto.Marshal(m.logMessage)
-		if err == nil {
-			m.rawMessageLength = uint32(len(m.rawMessage))
-			return nil
-		}
-		m.rawMessageLength = uint32(len(m.rawMessage))
-		return err
-	}
-
-	return err
 }
 
 func (e *LogEnvelope) VerifySignature(sharedSecret string) bool {
