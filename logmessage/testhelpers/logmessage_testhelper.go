@@ -50,6 +50,24 @@ func NewLogMessage(messageString, appId string) *logmessage.LogMessage {
 	return generateLogMessage(messageString, appId, messageType, sourceType)
 }
 
+func NewMessage(t *testing.T, messageString, appId string) *logmessage.Message {
+	currentTime := time.Now()
+	messageType := logmessage.LogMessage_OUT
+	sourceType := logmessage.LogMessage_WARDEN_CONTAINER
+
+	logMessage := &logmessage.LogMessage{
+		Message:     []byte(messageString),
+		AppId:       proto.String(appId),
+		MessageType: &messageType,
+		SourceType:  &sourceType,
+		Timestamp:   proto.Int64(currentTime.UnixNano()),
+	}
+	marshalledLogMessage, err := proto.Marshal(logMessage)
+	assert.NoError(t, err)
+
+	return logmessage.NewMessage(logMessage, marshalledLogMessage)
+}
+
 func MarshalledLogEnvelope(t *testing.T, unmarshalledMessage *logmessage.LogMessage, secret string) []byte {
 	envelope := &logmessage.LogEnvelope{
 		LogMessage: unmarshalledMessage,
@@ -67,10 +85,10 @@ func AssertProtoBufferMessageEquals(t *testing.T, expectedMessage string, actual
 	assert.Equal(t, expectedMessage, string(receivedMessage.GetMessage()))
 }
 
-func generateLogMessage(messsageString, appId string, messageType logmessage.LogMessage_MessageType, sourceType logmessage.LogMessage_SourceType) *logmessage.LogMessage {
+func generateLogMessage(messageString, appId string, messageType logmessage.LogMessage_MessageType, sourceType logmessage.LogMessage_SourceType) *logmessage.LogMessage {
 	currentTime := time.Now()
 	logMessage := &logmessage.LogMessage{
-		Message:     []byte(messsageString),
+		Message:     []byte(messageString),
 		AppId:       proto.String(appId),
 		MessageType: &messageType,
 		SourceType:  &sourceType,
