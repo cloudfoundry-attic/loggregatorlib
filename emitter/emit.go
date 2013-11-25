@@ -18,6 +18,7 @@ var (
 
 type Emitter interface {
 	Emit(string, string)
+	EmitError(string, string)
 	EmitLogMessage(*logmessage.LogMessage)
 }
 
@@ -44,7 +45,17 @@ func (e *loggregatoremitter) Emit(appid, message string) {
 	if isEmpty(appid) || isEmpty(message) {
 		return
 	}
-	logMessage := e.newLogMessage(appid, message)
+	logMessage := e.newLogMessage(appid, message, logmessage.LogMessage_OUT)
+	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceType, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
+
+	e.EmitLogMessage(logMessage)
+}
+
+func (e *loggregatoremitter) EmitError(appid, message string) {
+	if isEmpty(appid) || isEmpty(message) {
+		return
+	}
+	logMessage := e.newLogMessage(appid, message, logmessage.LogMessage_ERR)
 	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceType, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
 
 	e.EmitLogMessage(logMessage)
@@ -108,9 +119,8 @@ func NewEmitter(loggregatorServer, sourceType, sourceId, sharedSecret string, lo
 	return e, nil
 }
 
-func (e *loggregatoremitter) newLogMessage(appId, message string) *logmessage.LogMessage {
+func (e *loggregatoremitter) newLogMessage(appId, message string, mt logmessage.LogMessage_MessageType) *logmessage.LogMessage {
 	currentTime := time.Now()
-	mt := logmessage.LogMessage_OUT
 
 	return &logmessage.LogMessage{
 		Message:     []byte(message),
