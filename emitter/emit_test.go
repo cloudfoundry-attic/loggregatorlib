@@ -36,6 +36,20 @@ func TestEmit(t *testing.T) {
 	assert.Equal(t, receivedMessage.GetMessage(), []byte("foo"))
 	assert.Equal(t, receivedMessage.GetAppId(), "appid")
 	assert.Equal(t, receivedMessage.GetSourceId(), "42")
+	assert.Equal(t, receivedMessage.GetMessageType(), logmessage.LogMessage_OUT)
+}
+
+func TestEmitError(t *testing.T) {
+	received := make(chan *[]byte, 1)
+	e, _ := NewEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+	e.LoggregatorClient = &MockLoggregatorClient{received}
+	e.EmitError("appid", "foo")
+	receivedMessage := extractLogMessage(t, <-received)
+
+	assert.Equal(t, receivedMessage.GetMessage(), []byte("foo"))
+	assert.Equal(t, receivedMessage.GetAppId(), "appid")
+	assert.Equal(t, receivedMessage.GetSourceId(), "42")
+	assert.Equal(t, receivedMessage.GetMessageType(), logmessage.LogMessage_ERR)
 }
 
 func TestLogMessageEmit(t *testing.T) {
