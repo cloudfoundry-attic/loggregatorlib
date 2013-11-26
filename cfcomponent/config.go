@@ -3,8 +3,9 @@ package cfcomponent
 import (
 	"errors"
 	"fmt"
-	cfmessagebus "github.com/cloudfoundry/go_cfmessagebus"
 	"github.com/cloudfoundry/gosteno"
+	"github.com/cloudfoundry/yagnats"
+	"strconv"
 )
 
 type Config struct {
@@ -16,17 +17,20 @@ type Config struct {
 	NatsPort   int
 	NatsUser   string
 	NatsPass   string
-	MbusClient cfmessagebus.MessageBus
+	MbusClient *yagnats.Client
 }
 
 func (c *Config) Validate(logger *gosteno.Logger) (err error) {
-	c.MbusClient, err = cfmessagebus.NewMessageBus("NATS")
-	if err != nil {
-		return errors.New(fmt.Sprintf("Can not create message bus to NATS: %s", err))
+	c.MbusClient = yagnats.NewClient()
+	c.MbusClient.Logger = logger
+
+	addr := c.NatsHost + ":" + strconv.Itoa(c.NatsPort)
+	info := &yagnats.ConnectionInfo{
+		Addr:     addr,
+		Username: c.NatsUser,
+		Password: c.NatsPass,
 	}
-	c.MbusClient.Configure(c.NatsHost, c.NatsPort, c.NatsUser, c.NatsPass)
-	c.MbusClient.SetLogger(logger)
-	err = c.MbusClient.Connect()
+	err = c.MbusClient.Connect(info)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not connect to NATS: %v", err.Error()))
 	}

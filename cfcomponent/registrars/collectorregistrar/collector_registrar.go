@@ -2,17 +2,17 @@ package collectorregistrar
 
 import (
 	"encoding/json"
-	mbus "github.com/cloudfoundry/go_cfmessagebus"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
+	"github.com/cloudfoundry/yagnats"
 )
 
 type collectorRegistrar struct {
 	*gosteno.Logger
-	mBusClient mbus.MessageBus
+	mBusClient yagnats.NATSClient
 }
 
-func NewCollectorRegistrar(mBusClient mbus.MessageBus, logger *gosteno.Logger) *collectorRegistrar {
+func NewCollectorRegistrar(mBusClient yagnats.NATSClient, logger *gosteno.Logger) *collectorRegistrar {
 	return &collectorRegistrar{mBusClient: mBusClient, Logger: logger}
 }
 
@@ -29,19 +29,21 @@ func (r collectorRegistrar) announceComponent(cfc cfcomponent.Component) error {
 	if err != nil {
 		return err
 	}
-
 	r.mBusClient.Publish(AnnounceComponentMessageSubject, json)
 	return nil
 }
 
 func (r collectorRegistrar) subscribeToComponentDiscover(cfc cfcomponent.Component) {
-	r.mBusClient.RespondToChannel(DiscoverComponentMessageSubject, func(msg []byte) []byte {
+	var callback yagnats.Callback
+	callback = func(msg *yagnats.Message) {
 		json, err := json.Marshal(NewAnnounceComponentMessage(cfc))
 		if err != nil {
 			r.Warnf("Failed to marshal response to message [%s]: %s", DiscoverComponentMessageSubject, err.Error())
-			return nil
 		}
-		return json
-	})
+		r.mBusClient.Publish(msg.ReplyTo, json)
+	}
+
+	r.mBusClient.Subscribe(DiscoverComponentMessageSubject, callback)
+
 	return
 }
