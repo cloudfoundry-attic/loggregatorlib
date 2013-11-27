@@ -1,8 +1,8 @@
 package routerregistrar
 
 import (
-	mbus "github.com/cloudfoundry/go_cfmessagebus"
-	"github.com/cloudfoundry/go_cfmessagebus/mock_cfmessagebus"
+	"github.com/cloudfoundry/yagnats/fakeyagnats"
+	"github.com/cloudfoundry/yagnats"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -11,15 +11,18 @@ import (
 )
 
 func TestGreetRouter(t *testing.T) {
-	mbus := mock_cfmessagebus.NewMockMessageBus()
-	routerReceivedChannel := make(chan []byte)
-	fakeRouter(mbus, routerReceivedChannel)
-
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
-	err := registrar.greetRouter()
-	assert.NoError(t, err)
-
+	routerReceivedChannel := make(chan *yagnats.Message, 10)
 	resultChan := make(chan bool)
+
+	mbus := fakeyagnats.New()
+	fakeRouter(mbus, routerReceivedChannel)
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+
+	go func() {
+		err := registrar.greetRouter()
+		assert.NoError(t, err)
+	}()
+
 	go func() {
 		for {
 			registrar.lock.RLock()
@@ -35,21 +38,27 @@ func TestGreetRouter(t *testing.T) {
 
 	select {
 	case <-resultChan:
+		assert.Equal(t, len(mbus.Subscriptions["router.greet"]), 1)
+		assert.Equal(t, len(mbus.Subscriptions["router.register"]), 1)
+		assert.Equal(t, len(mbus.Subscriptions), 4)
 	case <-time.After(2 * time.Second):
 		t.Error("Router did not receive a router.start in time!")
 	}
 }
 
 func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
-	mbus := mock_cfmessagebus.NewMockMessageBus()
-	routerReceivedChannel := make(chan []byte)
-	fakeBrokenGreeterRouter(mbus, routerReceivedChannel)
-
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
-	err := registrar.greetRouter()
-	assert.Error(t, err)
-
+	routerReceivedChannel := make(chan *yagnats.Message)
 	resultChan := make(chan bool)
+
+	mbus := fakeyagnats.New()
+	fakeBrokenGreeterRouter(mbus, routerReceivedChannel)
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+
+	go func() {
+		err := registrar.greetRouter()
+		assert.Error(t, err)
+	}()
+
 	go func() {
 		for {
 			registrar.lock.RLock()
@@ -71,12 +80,16 @@ func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
 }
 
 func TestDefaultIntervalIsSetWhenGreetWithoutRouter(t *testing.T) {
-	mbus := mock_cfmessagebus.NewMockMessageBus()
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
-	err := registrar.greetRouter()
-	assert.Error(t, err)
-
 	resultChan := make(chan bool)
+
+	mbus := fakeyagnats.New()
+	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+
+	go func() {
+		err := registrar.greetRouter()
+		assert.Error(t, err)
+	}()
+
 	go func() {
 		for {
 			registrar.lock.RLock()
@@ -92,15 +105,15 @@ func TestDefaultIntervalIsSetWhenGreetWithoutRouter(t *testing.T) {
 
 	select {
 	case <-resultChan:
-	case <-time.After(2 * time.Second):
+	case <-time.After(32 * time.Second):
 		t.Error("Default register interval was never set!")
 	}
 }
 
 func TestKeepRegisteringWithRouter(t *testing.T) {
-	mbus := mock_cfmessagebus.NewMockMessageBus()
+	mbus := fakeyagnats.New()
 	os.Setenv("LOG_TO_STDOUT", "false")
-	routerReceivedChannel := make(chan []byte)
+	routerReceivedChannel := make(chan *yagnats.Message)
 	fakeRouter(mbus, routerReceivedChannel)
 
 	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
@@ -111,7 +124,7 @@ func TestKeepRegisteringWithRouter(t *testing.T) {
 		time.Sleep(55 * time.Millisecond)
 		select {
 		case msg := <-routerReceivedChannel:
-			assert.Equal(t, `registering:{"host":"13.12.14.15","port":8083,"uris":["foobar.vcap.me"]}`, string(msg))
+			assert.Equal(t, `registering:{"host":"13.12.14.15","port":8083,"uris":["foobar.vcap.me"]}`, string(msg.Payload))
 		default:
 			t.Error("Router did not receive a router.register in time!")
 		}
@@ -119,7 +132,7 @@ func TestKeepRegisteringWithRouter(t *testing.T) {
 }
 
 func TestSubscribeToRouterStart(t *testing.T) {
-	mbus := mock_cfmessagebus.NewMockMessageBus()
+	mbus := fakeyagnats.New()
 	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 	registrar.subscribeToRouterStart()
 
@@ -148,8 +161,8 @@ func TestSubscribeToRouterStart(t *testing.T) {
 }
 
 func TestUnregisterFromRouter(t *testing.T) {
-	mbus := mock_cfmessagebus.NewMockMessageBus()
-	routerReceivedChannel := make(chan []byte)
+	mbus := fakeyagnats.New()
+	routerReceivedChannel := make(chan *yagnats.Message, 10)
 	fakeRouter(mbus, routerReceivedChannel)
 
 	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
@@ -158,7 +171,7 @@ func TestUnregisterFromRouter(t *testing.T) {
 	select {
 	case msg := <-routerReceivedChannel:
 		host := "13.12.14.15"
-		assert.Equal(t, `unregistering:{"host":"`+host+`","port":8083,"uris":["foobar.vcap.me"]}`, string(msg))
+		assert.Equal(t, `unregistering:{"host":"`+host+`","port":8083,"uris":["foobar.vcap.me"]}`, string(msg.Payload))
 	case <-time.After(2 * time.Second):
 		t.Error("Router did not receive a router.unregister in time!")
 	}
@@ -170,26 +183,34 @@ const messageFromRouter = `{
   							"minimumRegisterIntervalInSeconds": 42
 							}`
 
-func fakeRouter(mbus mbus.MessageBus, returnChannel chan []byte) {
-	mbus.RespondToChannel("router.greet", func(_ []byte) []byte {
-		response := []byte(messageFromRouter)
-		return response
+func fakeRouter(mbus *fakeyagnats.FakeYagnats, returnChannel chan *yagnats.Message) {
+	mbus.Subscribe("router.greet", func(msg *yagnats.Message) {
+		mbus.Publish(msg.ReplyTo, []byte(messageFromRouter))
 	})
 
-	mbus.RespondToChannel("router.register", func(content []byte) []byte {
-		returnChannel <- []byte("registering:" + string(content))
-		return content
+	mbus.Subscribe("router.register", func(msg *yagnats.Message)  {
+		returnChannel <- &yagnats.Message {
+			Subject: msg.Subject,
+			ReplyTo: msg.ReplyTo,
+			Payload: []byte("registering:" + string(msg.Payload)),
+		}
+
+		mbus.Publish(msg.ReplyTo, msg.Payload)
 	})
 
-	mbus.RespondToChannel("router.unregister", func(content []byte) []byte {
-		returnChannel <- []byte("unregistering:" + string(content))
-		return content
+	mbus.Subscribe("router.unregister", func(msg *yagnats.Message)  {
+		returnChannel <- &yagnats.Message {
+			Subject: msg.Subject,
+			ReplyTo: msg.ReplyTo,
+			Payload: []byte("unregistering:" + string(msg.Payload)),
+		}
+		mbus.Publish(msg.ReplyTo, msg.Payload)
 	})
 }
 
-func fakeBrokenGreeterRouter(mbus mbus.MessageBus, returnChannel chan []byte) {
-	mbus.RespondToChannel("router.greet", func(_ []byte) []byte {
-		response := []byte("garbel garbel")
-		return response
+func fakeBrokenGreeterRouter(mbus *fakeyagnats.FakeYagnats, returnChannel chan *yagnats.Message) {
+
+	mbus.Subscribe("router.greet", func(msg *yagnats.Message)  {
+		mbus.Publish(msg.ReplyTo, []byte("garbel garbel"))
 	})
 }

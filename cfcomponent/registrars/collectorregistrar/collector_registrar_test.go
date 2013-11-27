@@ -14,16 +14,15 @@ func TestAnnounceComponent(t *testing.T) {
 	cfc := getTestCFComponent()
 	mbus := fakeyagnats.New()
 
-	called := make(chan *yagnats.Message)
-	id, _ := mbus.Subscribe(AnnounceComponentMessageSubject, func(response *yagnats.Message) {
+	called := make(chan *yagnats.Message, 10)
+	mbus.Subscribe(AnnounceComponentMessageSubject, func(response *yagnats.Message) {
 		called <- response
 	})
 
 	registrar := NewCollectorRegistrar(mbus, loggertesthelper.Logger())
 	registrar.announceComponent(cfc)
 
-	expectedJson, yagnatsMsg := createYagnatsMessage(t, AnnounceComponentMessageSubject)
-	go triggerCallback(AnnounceComponentMessageSubject, yagnatsMsg, id, mbus)
+	expectedJson, _ := createYagnatsMessage(t, AnnounceComponentMessageSubject)
 
 	payloadBytes := (<-called).Payload
 	assert.Equal(t, expectedJson, payloadBytes)
@@ -33,18 +32,16 @@ func TestSubscribeToComponentDiscover(t *testing.T) {
 	cfc := getTestCFComponent()
 	mbus := fakeyagnats.New()
 
-	called := make(chan *yagnats.Message)
-	id, _ := mbus.Subscribe(DiscoverComponentMessageSubject, func(response *yagnats.Message) {
+	called := make(chan *yagnats.Message, 10)
+	mbus.Subscribe(DiscoverComponentMessageSubject, func(response *yagnats.Message) {
 		called <- response
 	})
 
 	registrar := NewCollectorRegistrar(mbus, loggertesthelper.Logger())
 	registrar.subscribeToComponentDiscover(cfc)
 
-	expectedJson, yagnatsMsg := createYagnatsMessage(t, DiscoverComponentMessageSubject)
-
+	expectedJson, _ := createYagnatsMessage(t, DiscoverComponentMessageSubject)
 	mbus.PublishWithReplyTo(DiscoverComponentMessageSubject, "unused-reply", expectedJson)
-	go triggerCallback(DiscoverComponentMessageSubject, yagnatsMsg, id, mbus)
 
 	payloadBytes := (<-called).Payload
 	assert.Equal(t, expectedJson, payloadBytes)
@@ -81,9 +78,4 @@ func getTestCFComponent() cfcomponent.Component {
 		StatusCredentials: []string{"user", "pass"},
 		UUID:              "abc123",
 	}
-}
-
-func triggerCallback(subject string, yagnatsMsg *yagnats.Message, id int, mbus *fakeyagnats.FakeYagnats) {
-	// fakeyagnats increments counter before creating subscription thus the off by one
-	mbus.Subscriptions[subject][id - 1].Callback(yagnatsMsg)
 }

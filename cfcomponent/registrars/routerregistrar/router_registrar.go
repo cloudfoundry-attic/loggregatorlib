@@ -4,20 +4,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	mbus "github.com/cloudfoundry/go_cfmessagebus"
+	"github.com/cloudfoundry/yagnats"
 	"github.com/cloudfoundry/gosteno"
 	"sync"
 	"time"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 type registrar struct {
 	*gosteno.Logger
-	mBusClient             mbus.MessageBus
+	mBusClient yagnats.NATSClient
 	routerRegisterInterval time.Duration
 	lock                   sync.RWMutex
 }
 
-func NewRouterRegistrar(mBusClient mbus.MessageBus, logger *gosteno.Logger) *registrar {
+func NewRouterRegistrar(mBusClient yagnats.NATSClient, logger *gosteno.Logger) *registrar {
 	return &registrar{mBusClient: mBusClient, Logger: logger}
 }
 
@@ -32,12 +33,32 @@ func (r *registrar) RegisterWithRouter(hostname string, port uint32, uris []stri
 	return nil
 }
 
-func (r *registrar) greetRouter() (err error) {
-	response := make(chan []byte)
+func createInbox() (string, error) {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
 
-	r.mBusClient.Request(RouterGreetMessageSubject, []byte{}, func(payload []byte) {
+	return fmt.Sprintf("_INBOX.%s", uuid), nil
+}
+
+func (r *registrar) greetRouter() (err error) {
+	response := make(chan []byte, 100)
+
+	callback := func(payload []byte) {
 		response <- payload
+	}
+
+	inbox, err := createInbox()
+	if err != nil {
+		return err
+	}
+
+	r.mBusClient.Subscribe(inbox, func(msg *yagnats.Message) {
+		callback([]byte(msg.Payload))
 	})
+
+	r.mBusClient.PublishWithReplyTo(RouterGreetMessageSubject, inbox, []byte{})
 
 	routerRegisterInterval := 20 * time.Second
 	select {
@@ -49,7 +70,6 @@ func (r *registrar) greetRouter() (err error) {
 		} else {
 			routerRegisterInterval = routerResponse.RegisterInterval * time.Second
 			r.Infof("Greeted the router. Setting register interval to %v seconds\n", routerResponse.RegisterInterval)
-
 		}
 	case <-time.After(30 * time.Second):
 		err = errors.New("Did not get a response to router.greet!")
@@ -63,7 +83,8 @@ func (r *registrar) greetRouter() (err error) {
 }
 
 func (r *registrar) subscribeToRouterStart() {
-	r.mBusClient.Subscribe(RouterStartMessageSubject, func(payload []byte) {
+	r.mBusClient.Subscribe(RouterStartMessageSubject, func(msg *yagnats.Message) {
+		payload := msg.Payload
 		routerResponse := &RouterResponse{}
 		err := json.Unmarshal(payload, routerResponse)
 		if err != nil {
