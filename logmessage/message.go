@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/gogoprotobuf/proto"
 	"errors"
 	"github.com/cloudfoundry/loggregatorlib/signature"
+	"time"
 )
 
 type Message struct {
@@ -14,6 +15,24 @@ type Message struct {
 
 func NewMessage(logMessage *LogMessage, data []byte) *Message {
 	return &Message{logMessage, data, uint32(len(data))}
+}
+
+func GenerateMessage(messageType LogMessage_MessageType, sourceType LogMessage_SourceType, messageString, appId, sourceName string) (*Message, error) {
+	currentTime := time.Now()
+	logMessage := &LogMessage{
+		Message:     []byte(messageString),
+		AppId:       &appId,
+		MessageType: &messageType,
+		SourceType:  &sourceType,
+		SourceName:  proto.String(sourceName),
+		Timestamp:   proto.Int64(currentTime.UnixNano()),
+	}
+
+	lmBytes, err := proto.Marshal(logMessage)
+	if err != nil {
+		return nil, err
+	}
+	return NewMessage(logMessage, lmBytes), nil
 }
 
 func ParseMessage(data []byte) (*Message, error) {

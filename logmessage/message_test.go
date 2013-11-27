@@ -7,6 +7,17 @@ import (
 	"time"
 )
 
+func TestGenerateMessageReturnsMessage(t *testing.T) {
+	message, err := GenerateMessage(LogMessage_ERR, LogMessage_DEA, "myMessage", "123appID", "DEA")
+	assert.NoError(t, err)
+
+	assert.Equal(t, *message.GetLogMessage().AppId, "123appID")
+	assert.Equal(t, *message.GetLogMessage().SourceName, "DEA")
+	assert.Equal(t, *message.GetLogMessage().MessageType, LogMessage_ERR)
+	assert.Equal(t, *message.GetLogMessage().SourceType, LogMessage_DEA)
+	assert.Equal(t, message.GetLogMessage().Message, []byte("myMessage"))
+}
+
 func TestExtractionFromMessage(t *testing.T) {
 	appMessageString := "AppMessage"
 
