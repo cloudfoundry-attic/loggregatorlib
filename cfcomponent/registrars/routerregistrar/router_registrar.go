@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloudfoundry/yagnats"
 	"github.com/cloudfoundry/gosteno"
+	"github.com/cloudfoundry/yagnats"
+	uuid "github.com/nu7hatch/gouuid"
 	"sync"
 	"time"
-	uuid "github.com/nu7hatch/gouuid"
 )
 
 type registrar struct {
 	*gosteno.Logger
-	mBusClient yagnats.NATSClient
+	mBusClient             yagnats.NATSClient
 	routerRegisterInterval time.Duration
 	lock                   sync.RWMutex
 }

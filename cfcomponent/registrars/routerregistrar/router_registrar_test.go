@@ -1,9 +1,9 @@
 package routerregistrar
 
 import (
-	"github.com/cloudfoundry/yagnats/fakeyagnats"
-	"github.com/cloudfoundry/yagnats"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
+	"github.com/cloudfoundry/yagnats"
+	"github.com/cloudfoundry/yagnats/fakeyagnats"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -188,8 +188,8 @@ func fakeRouter(mbus *fakeyagnats.FakeYagnats, returnChannel chan *yagnats.Messa
 		mbus.Publish(msg.ReplyTo, []byte(messageFromRouter))
 	})
 
-	mbus.Subscribe("router.register", func(msg *yagnats.Message)  {
-		returnChannel <- &yagnats.Message {
+	mbus.Subscribe("router.register", func(msg *yagnats.Message) {
+		returnChannel <- &yagnats.Message{
 			Subject: msg.Subject,
 			ReplyTo: msg.ReplyTo,
 			Payload: []byte("registering:" + string(msg.Payload)),
@@ -198,8 +198,8 @@ func fakeRouter(mbus *fakeyagnats.FakeYagnats, returnChannel chan *yagnats.Messa
 		mbus.Publish(msg.ReplyTo, msg.Payload)
 	})
 
-	mbus.Subscribe("router.unregister", func(msg *yagnats.Message)  {
-		returnChannel <- &yagnats.Message {
+	mbus.Subscribe("router.unregister", func(msg *yagnats.Message) {
+		returnChannel <- &yagnats.Message{
 			Subject: msg.Subject,
 			ReplyTo: msg.ReplyTo,
 			Payload: []byte("unregistering:" + string(msg.Payload)),
@@ -210,7 +210,7 @@ func fakeRouter(mbus *fakeyagnats.FakeYagnats, returnChannel chan *yagnats.Messa
 
 func fakeBrokenGreeterRouter(mbus *fakeyagnats.FakeYagnats, returnChannel chan *yagnats.Message) {
 
-	mbus.Subscribe("router.greet", func(msg *yagnats.Message)  {
+	mbus.Subscribe("router.greet", func(msg *yagnats.Message) {
 		mbus.Publish(msg.ReplyTo, []byte("garbel garbel"))
 	})
 }

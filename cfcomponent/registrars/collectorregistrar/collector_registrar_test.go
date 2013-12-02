@@ -1,13 +1,13 @@
 package collectorregistrar
 
 import (
+	"encoding/json"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/yagnats"
 	"github.com/cloudfoundry/yagnats/fakeyagnats"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"encoding/json"
 )
 
 func TestAnnounceComponent(t *testing.T) {
@@ -60,7 +60,7 @@ func createYagnatsMessage(t *testing.T, subject string) ([]byte, *yagnats.Messag
 	expectedJson, err := json.Marshal(expected)
 	assert.NoError(t, err)
 
-	yagnatsMsg := &yagnats.Message {
+	yagnatsMsg := &yagnats.Message{
 		Subject: subject,
 		ReplyTo: "reply_to",
 		Payload: expectedJson,
