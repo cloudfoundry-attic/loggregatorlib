@@ -59,6 +59,7 @@ const (
 	LogMessage_WARDEN_CONTAINER LogMessage_SourceType = 5
 	LogMessage_LOGGREGATOR      LogMessage_SourceType = 6
 	LogMessage_UNKNOWN          LogMessage_SourceType = 7
+	LogMessage_STG          	LogMessage_SourceType = 8
 )
 
 var LogMessage_SourceType_name = map[int32]string{
@@ -69,6 +70,7 @@ var LogMessage_SourceType_name = map[int32]string{
 	5: "WARDEN_CONTAINER",
 	6: "LOGGREGATOR",
 	7: "UNKNOWN",
+	8: "STG",
 }
 var LogMessage_SourceType_value = map[string]int32{
 	"CLOUD_CONTROLLER": 1,
@@ -78,6 +80,7 @@ var LogMessage_SourceType_value = map[string]int32{
 	"WARDEN_CONTAINER": 5,
 	"LOGGREGATOR":      6,
 	"UNKNOWN":          7,
+	"STG": 				8,
 }
 
 func (x LogMessage_SourceType) Enum() *LogMessage_SourceType {
