@@ -1,7 +1,7 @@
 language: go
 notifications:
   email:
-  - cf-loggregator@pivotallabs.com
+  - cf-lamb@pivotallabs.com
 
 install:
   - go get -d -v ./...
