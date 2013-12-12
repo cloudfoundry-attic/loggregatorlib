@@ -24,7 +24,6 @@ type Emitter interface {
 
 type loggregatoremitter struct {
 	LoggregatorClient loggregatorclient.LoggregatorClient
-	st                logmessage.LogMessage_SourceType
 	sn                string
 	sId               string
 	sharedSecret      string
@@ -46,7 +45,7 @@ func (e *loggregatoremitter) Emit(appid, message string) {
 		return
 	}
 	logMessage := e.newLogMessage(appid, message, logmessage.LogMessage_OUT)
-	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceType, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
+	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceName, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
 
 	e.EmitLogMessage(logMessage)
 }
@@ -56,7 +55,7 @@ func (e *loggregatoremitter) EmitError(appid, message string) {
 		return
 	}
 	logMessage := e.newLogMessage(appid, message, logmessage.LogMessage_ERR)
-	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceType, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
+	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", logMessage.SourceName, logMessage.MessageType, logMessage.AppId, string(logMessage.Message))
 
 	e.EmitLogMessage(logMessage)
 }
@@ -97,20 +96,14 @@ func (e *loggregatoremitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 	}
 }
 
-func NewEmitter(loggregatorServer, sourceType, sourceId, sharedSecret string, logger *gosteno.Logger) (*loggregatoremitter, error) {
+func NewEmitter(loggregatorServer, sourceName, sourceId, sharedSecret string, logger *gosteno.Logger) (*loggregatoremitter, error) {
 	if logger == nil {
 		logger = gosteno.NewLogger("loggregatorlib.emitter")
 	}
 
 	e := &loggregatoremitter{sharedSecret: sharedSecret}
 
-	if name, ok := logmessage.LogMessage_SourceType_value[sourceType]; ok {
-		e.st = logmessage.LogMessage_SourceType(name)
-	} else {
-		e.st = logmessage.LogMessage_UNKNOWN
-	}
-
-	e.sn = sourceType
+	e.sn = sourceName
 	e.logger = logger
 	e.LoggregatorClient = loggregatorclient.NewLoggregatorClient(loggregatorServer, logger, loggregatorclient.DefaultBufferSize)
 	e.sId = sourceId
@@ -126,7 +119,6 @@ func (e *loggregatoremitter) newLogMessage(appId, message string, mt logmessage.
 		Message:     []byte(message),
 		AppId:       proto.String(appId),
 		MessageType: &mt,
-		SourceType:  &e.st,
 		SourceId:    &e.sId,
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
 		SourceName:  &e.sn,

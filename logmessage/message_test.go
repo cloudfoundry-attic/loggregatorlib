@@ -8,81 +8,45 @@ import (
 )
 
 func TestGenerateMessageReturnsMessage(t *testing.T) {
-	message, err := GenerateMessage(LogMessage_ERR, LogMessage_DEA, "myMessage", "123appID", "DEA")
+	message, err := GenerateMessage(LogMessage_ERR, "myMessage", "123appID", "DEA")
 	assert.NoError(t, err)
 
 	assert.Equal(t, *message.GetLogMessage().AppId, "123appID")
 	assert.Equal(t, *message.GetLogMessage().SourceName, "DEA")
 	assert.Equal(t, *message.GetLogMessage().MessageType, LogMessage_ERR)
-	assert.Equal(t, *message.GetLogMessage().SourceType, LogMessage_DEA)
 	assert.Equal(t, message.GetLogMessage().Message, []byte("myMessage"))
 }
 
-func TestExtractionFromMessage(t *testing.T) {
+func TestEnvelopeExtractionForMessageFails(t *testing.T) {
 	appMessageString := "AppMessage"
 
-	unmarshalledMessage := NewLogMessageWithSourceType(t, appMessageString, LogMessage_WARDEN_CONTAINER, "myApp")
+	unmarshalledMessage := NewLogMessageWithSourceName(t, appMessageString, "App", "myApp")
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 
 	_, err := ParseEnvelope(marshalledMessage, "")
 	assert.Error(t, err)
 }
 
-func TestGetShortSourceTypeNameReturnsTheTypeIfMappingExists(t *testing.T) {
-
-	sourceTypeNames := map[LogMessage_SourceType]string{
-		LogMessage_CLOUD_CONTROLLER: "API",
-		LogMessage_ROUTER:           "RTR",
-		LogMessage_UAA:              "UAA",
-		LogMessage_DEA:              "DEA",
-		LogMessage_WARDEN_CONTAINER: "App",
-	}
-
-	for sourceType, abbreviation := range sourceTypeNames {
-		appMessageString := "AppMessage"
-
-		unmarshalledMessage := NewLogMessageWithSourceType(t, appMessageString, sourceType, "myApp")
-		marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
-
-		message, err := ParseMessage(marshalledMessage)
-		assert.NoError(t, err)
-
-		assert.Equal(t, abbreviation, message.GetShortSourceTypeName())
-	}
-}
-
-func TestGetShortSourceTypeNameReturnsTheSourceNameTypeIfMappingDoesNotExist(t *testing.T) {
-	appMessageString := "AppMessage"
-
-	unmarshalledMessage := NewLogMessageWithSourceName(t, appMessageString, "STG", "myApp")
-	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
-
-	message, err := ParseMessage(marshalledMessage)
-	assert.NoError(t, err)
-
-	assert.Equal(t, "STG", message.GetShortSourceTypeName())
-}
-
 func TestExtractionFromEnvelopeWithValidSignature(t *testing.T) {
 	appMessageString := "AppMessage"
 
-	unmarshalledMessage := NewLogMessageWithSourceType(t, appMessageString, LogMessage_WARDEN_CONTAINER, "myApp")
+	unmarshalledMessage := NewLogMessageWithSourceName(t, appMessageString, "App", "myApp")
 	marshalledMessage := MarshallLogMessage(t, unmarshalledMessage)
 	marshalledEnvelope := MarshalledLogEnvelope(t, unmarshalledMessage, "some secret")
 
 	message, err := ParseEnvelope(marshalledEnvelope, "some secret")
 	assert.NoError(t, err)
 
-	assert.Equal(t, 51, len(message.GetRawMessage()))
+	assert.Equal(t, 36, len(message.GetRawMessage()))
 	assert.Equal(t, marshalledMessage, message.GetRawMessage())
 	assert.Equal(t, unmarshalledMessage, message.GetLogMessage())
-	assert.Equal(t, "App", message.GetShortSourceTypeName())
+	assert.Equal(t, "App", message.logMessage.GetSourceName())
 }
 
 func TestExtractionFromEnvelopeWithInvalidSignature(t *testing.T) {
 	appMessageString := "AppMessage"
 
-	unmarshalledMessage := NewLogMessageWithSourceType(t, appMessageString, LogMessage_WARDEN_CONTAINER, "myApp")
+	unmarshalledMessage := NewLogMessageWithSourceName(t, appMessageString, "App", "myApp")
 	marshalledEnvelope := MarshalledLogEnvelope(t, unmarshalledMessage, "some secret")
 
 	_, err := ParseEnvelope(marshalledEnvelope, "invalid secret")
@@ -106,7 +70,7 @@ func TestExtractEnvelopeFromRawBytes(t *testing.T) {
 
 func TestThatSignatureValidatesWhenItMatches(t *testing.T) {
 	secret := "super-secret"
-	logMessage := NewLogMessageWithSourceType(t, "the logs", LogMessage_WARDEN_CONTAINER, "appid")
+	logMessage := NewLogMessageWithSourceName(t, "the logs", "App", "appid")
 
 	envelope := &LogEnvelope{
 		LogMessage: logMessage,
@@ -129,7 +93,7 @@ func TestThatSignatureDoesNotValidateWhenItDoesntMatch(t *testing.T) {
 
 func TestThatSignatureDoesNotValidateWhenSecretIsIncorrect(t *testing.T) {
 	secret := "super-secret"
-	logMessage := NewLogMessageWithSourceType(t, "the logs", LogMessage_WARDEN_CONTAINER, "appid")
+	logMessage := NewLogMessageWithSourceName(t, "the logs", "App", "appid")
 
 	envelope := &LogEnvelope{
 		LogMessage: logMessage,
@@ -140,31 +104,14 @@ func TestThatSignatureDoesNotValidateWhenSecretIsIncorrect(t *testing.T) {
 	assert.False(t, envelope.VerifySignature(secret+"not the right secret"))
 }
 
-func NewLogMessageWithSourceType(t *testing.T, messageString string, sourceType LogMessage_SourceType, appId string) *LogMessage {
-	currentTime := time.Now()
-
-	messageType := LogMessage_OUT
-	protoMessage := &LogMessage{
-		Message:     []byte(messageString),
-		AppId:       proto.String(appId),
-		MessageType: &messageType,
-		SourceType:  &sourceType,
-		Timestamp:   proto.Int64(currentTime.UnixNano()),
-		SourceName:  proto.String("WARDEN_CONTAINER"),
-	}
-	return protoMessage
-}
-
 func NewLogMessageWithSourceName(t *testing.T, messageString, sourceName, appId string) *LogMessage {
 	currentTime := time.Now()
 
 	messageType := LogMessage_OUT
-	sourceType := LogMessage_UNKNOWN
 	protoMessage := &LogMessage{
 		Message:     []byte(messageString),
 		AppId:       proto.String(appId),
 		MessageType: &messageType,
-		SourceType:  &sourceType,
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
 		SourceName:  proto.String(sourceName),
 	}

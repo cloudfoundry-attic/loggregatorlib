@@ -134,19 +134,6 @@ func TestLogEnvelopeSignatureInTheEnvelope(t *testing.T) {
 	assert.True(t, receivedEnvelope.VerifySignature(sharedKey))
 }
 
-func TestSourceNameIsSetToSourceTypeIfMappingExists(t *testing.T) {
-	received := make(chan *[]byte, 1)
-	e, err := NewEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
-	assert.NoError(t, err)
-	e.LoggregatorClient = &MockLoggregatorClient{received}
-
-	e.Emit("test_app_id", "test_msg")
-	receivedMessage := extractLogMessage(t, <-received)
-
-	assert.Equal(t, receivedMessage.GetSourceName(), "ROUTER")
-	assert.Equal(t, receivedMessage.GetSourceType(), logmessage.LogMessage_ROUTER)
-}
-
 func TestSourceNameIsSetIfMappingIsUnknown(t *testing.T) {
 	received := make(chan *[]byte, 1)
 	e, err := NewEmitter("localhost:3456", "RTR", "42", "secret", nil)
@@ -157,7 +144,6 @@ func TestSourceNameIsSetIfMappingIsUnknown(t *testing.T) {
 	receivedMessage := extractLogMessage(t, <-received)
 
 	assert.Equal(t, receivedMessage.GetSourceName(), "RTR")
-	assert.Equal(t, receivedMessage.GetSourceType(), logmessage.LogMessage_UNKNOWN)
 }
 
 func TestLogEnvelopeValidSourcetype(t *testing.T) {

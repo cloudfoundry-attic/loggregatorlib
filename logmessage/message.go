@@ -17,13 +17,12 @@ func NewMessage(logMessage *LogMessage, data []byte) *Message {
 	return &Message{logMessage, data, uint32(len(data))}
 }
 
-func GenerateMessage(messageType LogMessage_MessageType, sourceType LogMessage_SourceType, messageString, appId, sourceName string) (*Message, error) {
+func GenerateMessage(messageType LogMessage_MessageType, messageString, appId, sourceName string) (*Message, error) {
 	currentTime := time.Now()
 	logMessage := &LogMessage{
 		Message:     []byte(messageString),
 		AppId:       &appId,
 		MessageType: &messageType,
-		SourceType:  &sourceType,
 		SourceName:  proto.String(sourceName),
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
 	}
@@ -71,23 +70,6 @@ func (m *Message) GetRawMessage() []byte {
 
 func (m *Message) GetRawMessageLength() uint32 {
 	return m.rawMessageLength
-}
-
-func (m *Message) GetShortSourceTypeName() string {
-	sourceTypeNames := map[LogMessage_SourceType]string{
-		LogMessage_CLOUD_CONTROLLER: "API",
-		LogMessage_ROUTER:           "RTR",
-		LogMessage_UAA:              "UAA",
-		LogMessage_DEA:              "DEA",
-		LogMessage_WARDEN_CONTAINER: "App",
-	}
-
-	sourceName := sourceTypeNames[m.logMessage.GetSourceType()]
-	if sourceName == "" {
-		sourceName = m.logMessage.GetSourceName()
-	}
-
-	return sourceName
 }
 
 func (e *LogEnvelope) VerifySignature(sharedSecret string) bool {

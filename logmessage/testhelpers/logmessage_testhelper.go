@@ -10,24 +10,24 @@ import (
 
 func MarshalledErrorLogMessage(t *testing.T, messageString string, appId string) []byte {
 	messageType := logmessage.LogMessage_ERR
-	sourceType := logmessage.LogMessage_DEA
-	protoMessage := generateLogMessage(messageString, appId, messageType, sourceType)
+	sourceName := "DEA"
+	protoMessage := generateLogMessage(messageString, appId, messageType, sourceName)
 
 	return marshalProtoBuf(t, protoMessage)
 }
 
 func MarshalledLogMessage(t *testing.T, messageString string, appId string) []byte {
 	messageType := logmessage.LogMessage_OUT
-	sourceType := logmessage.LogMessage_DEA
-	protoMessage := generateLogMessage(messageString, appId, messageType, sourceType)
+	sourceName := "DEA"
+	protoMessage := generateLogMessage(messageString, appId, messageType, sourceName)
 
 	return marshalProtoBuf(t, protoMessage)
 }
 
 func MarshalledDrainedLogMessage(t *testing.T, messageString string, appId string, drainUrls ...string) []byte {
 	messageType := logmessage.LogMessage_OUT
-	sourceType := logmessage.LogMessage_WARDEN_CONTAINER
-	protoMessage := generateLogMessage(messageString, appId, messageType, sourceType)
+	sourceName := "App"
+	protoMessage := generateLogMessage(messageString, appId, messageType, sourceName)
 	protoMessage.DrainUrls = drainUrls
 
 	return marshalProtoBuf(t, protoMessage)
@@ -35,8 +35,8 @@ func MarshalledDrainedLogMessage(t *testing.T, messageString string, appId strin
 
 func MarshalledDrainedNonWardenLogMessage(t *testing.T, messageString string, appId string, drainUrls ...string) []byte {
 	messageType := logmessage.LogMessage_OUT
-	sourceType := logmessage.LogMessage_DEA
-	protoMessage := generateLogMessage(messageString, appId, messageType, sourceType)
+	sourceName := "DEA"
+	protoMessage := generateLogMessage(messageString, appId, messageType, sourceName)
 	protoMessage.DrainUrls = drainUrls
 
 	return marshalProtoBuf(t, protoMessage)
@@ -45,21 +45,21 @@ func MarshalledDrainedNonWardenLogMessage(t *testing.T, messageString string, ap
 
 func NewLogMessage(messageString, appId string) *logmessage.LogMessage {
 	messageType := logmessage.LogMessage_OUT
-	sourceType := logmessage.LogMessage_WARDEN_CONTAINER
+	sourceName := "App"
 
-	return generateLogMessage(messageString, appId, messageType, sourceType)
+	return generateLogMessage(messageString, appId, messageType, sourceName)
 }
 
 func NewMessage(t *testing.T, messageString, appId string) *logmessage.Message {
 	currentTime := time.Now()
 	messageType := logmessage.LogMessage_OUT
-	sourceType := logmessage.LogMessage_WARDEN_CONTAINER
+	sourceName := "App"
 
 	logMessage := &logmessage.LogMessage{
 		Message:     []byte(messageString),
 		AppId:       proto.String(appId),
 		MessageType: &messageType,
-		SourceType:  &sourceType,
+		SourceName:  &sourceName,
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
 	}
 	marshalledLogMessage, err := proto.Marshal(logMessage)
@@ -91,13 +91,13 @@ func AssertProtoBufferMessageEquals(t *testing.T, expectedMessage string, actual
 	assert.Equal(t, expectedMessage, string(receivedMessage.GetMessage()))
 }
 
-func generateLogMessage(messageString, appId string, messageType logmessage.LogMessage_MessageType, sourceType logmessage.LogMessage_SourceType) *logmessage.LogMessage {
+func generateLogMessage(messageString, appId string, messageType logmessage.LogMessage_MessageType, sourceName string) *logmessage.LogMessage {
 	currentTime := time.Now()
 	logMessage := &logmessage.LogMessage{
 		Message:     []byte(messageString),
 		AppId:       proto.String(appId),
 		MessageType: &messageType,
-		SourceType:  &sourceType,
+		SourceName:  proto.String(sourceName),
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
 	}
 
