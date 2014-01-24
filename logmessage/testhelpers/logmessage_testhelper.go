@@ -85,10 +85,20 @@ func MarshalledLogEnvelope(t *testing.T, unmarshalledMessage *logmessage.LogMess
 }
 
 func AssertProtoBufferMessageEquals(t *testing.T, expectedMessage string, actual []byte) {
+	receivedMessage := assertProtoBufferMessageNoError(t, actual)
+	assert.Equal(t, receivedMessage, expectedMessage)
+}
+
+func AssertProtoBufferMessageContains(t *testing.T, expectedMessage string, actual []byte) {
+	receivedMessage := assertProtoBufferMessageNoError(t, actual)
+	assert.Contains(t, receivedMessage, expectedMessage)
+}
+
+func assertProtoBufferMessageNoError(t *testing.T, actual []byte) string {
 	receivedMessage := &logmessage.LogMessage{}
 	err := proto.Unmarshal(actual, receivedMessage)
 	assert.NoError(t, err)
-	assert.Equal(t, expectedMessage, string(receivedMessage.GetMessage()))
+	return string(receivedMessage.GetMessage())
 }
 
 func generateLogMessage(messageString, appId string, messageType logmessage.LogMessage_MessageType, sourceName string) *logmessage.LogMessage {
