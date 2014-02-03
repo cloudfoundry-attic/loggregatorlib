@@ -50,6 +50,8 @@ func ParseEnvelope(data []byte, secret string) (message *Message, err error) {
 		return nil, errors.New("Invalid Envelope Signature")
 	}
 
+	//we pull out the LogMessage from the LogEnvelope and re-marshal it
+	//because the rawMessage should not contain the information in the logEnvelope
 	message.rawMessage, err = proto.Marshal(logEnvelope.LogMessage)
 	if err != nil {
 		return nil, err
