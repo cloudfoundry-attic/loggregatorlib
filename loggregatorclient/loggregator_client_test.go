@@ -8,9 +8,8 @@ import (
 )
 
 func TestSend(t *testing.T) {
-	bufferSize := 4096
 	expectedOutput := []byte("Important Testmessage")
-	loggregatorClient := NewLoggregatorClient("127.0.0.1:9875", gosteno.NewLogger("TestLogger"), bufferSize)
+	loggregatorClient := NewLoggregatorClient("localhost:9875", gosteno.NewLogger("TestLogger"), 0)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", "localhost:9875")
 	assert.NoError(t, err)
@@ -21,7 +20,7 @@ func TestSend(t *testing.T) {
 
 	loggregatorClient.Send(expectedOutput)
 
-	buffer := make([]byte, bufferSize)
+	buffer := make([]byte, 4096)
 	readCount, _, err := udpListener.ReadFromUDP(buffer)
 	assert.NoError(t, err)
 

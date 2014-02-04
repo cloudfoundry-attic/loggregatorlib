@@ -15,17 +15,16 @@ type LoggregatorClient interface {
 }
 
 type udpLoggregatorClient struct {
-	receivedMessageCount *uint64
-	sentMessageCount     *uint64
-	receivedByteCount    *uint64
-	sentByteCount        *uint64
+	receivedMessageCount uint64
+	sentMessageCount     uint64
+	receivedByteCount    uint64
+	sentByteCount        uint64
 	sendChannel          chan []byte
 	loggregatorAddress   string
 }
 
 func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, bufferSize int) LoggregatorClient {
-	loggregatorClient := &udpLoggregatorClient{receivedMessageCount: new(uint64), sentMessageCount: new(uint64),
-		receivedByteCount: new(uint64), sentByteCount: new(uint64)}
+	loggregatorClient := &udpLoggregatorClient{}
 
 	la, err := net.ResolveUDPAddr("udp", loggregatorAddress)
 	if err != nil {
@@ -41,8 +40,7 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 	loggregatorClient.sendChannel = make(chan []byte, bufferSize)
 
 	go func() {
-		for {
-			dataToSend := <-loggregatorClient.sendChannel
+		for dataToSend := range loggregatorClient.sendChannel {
 			if len(dataToSend) > 0 {
 				writeCount, err := connection.WriteTo(dataToSend, la)
 				if err != nil {
@@ -50,8 +48,8 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 					continue
 				}
 				logger.Debugf("Wrote %d bytes to %s", writeCount, loggregatorAddress)
-				atomic.AddUint64(loggregatorClient.sentMessageCount, 1)
-				atomic.AddUint64(loggregatorClient.sentByteCount, uint64(writeCount))
+				atomic.AddUint64(&loggregatorClient.sentMessageCount, 1)
+				atomic.AddUint64(&loggregatorClient.sentByteCount, uint64(writeCount))
 			} else {
 				logger.Debugf("Skipped writing of 0 byte message to %s", loggregatorAddress)
 			}
@@ -62,8 +60,8 @@ func NewLoggregatorClient(loggregatorAddress string, logger *gosteno.Logger, buf
 }
 
 func (loggregatorClient *udpLoggregatorClient) Send(data []byte) {
-	atomic.AddUint64(loggregatorClient.receivedMessageCount, 1)
-	atomic.AddUint64(loggregatorClient.receivedByteCount, uint64(len(data)))
+	atomic.AddUint64(&loggregatorClient.receivedMessageCount, 1)
+	atomic.AddUint64(&loggregatorClient.receivedByteCount, uint64(len(data)))
 	loggregatorClient.sendChannel <- data
 }
 
@@ -71,10 +69,10 @@ func (loggregatorClient *udpLoggregatorClient) metrics() []instrumentation.Metri
 	tags := map[string]interface{}{"loggregatorAddress": loggregatorClient.loggregatorAddress}
 	return []instrumentation.Metric{
 		instrumentation.Metric{Name: "currentBufferCount", Value: uint64(len(loggregatorClient.sendChannel)), Tags: tags},
-		instrumentation.Metric{Name: "sentMessageCount", Value: atomic.LoadUint64(loggregatorClient.sentMessageCount), Tags: tags},
-		instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(loggregatorClient.receivedMessageCount), Tags: tags},
-		instrumentation.Metric{Name: "sentByteCount", Value: atomic.LoadUint64(loggregatorClient.sentByteCount), Tags: tags},
-		instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(loggregatorClient.receivedByteCount), Tags: tags},
+		instrumentation.Metric{Name: "sentMessageCount", Value: atomic.LoadUint64(&loggregatorClient.sentMessageCount), Tags: tags},
+		instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(&loggregatorClient.receivedMessageCount), Tags: tags},
+		instrumentation.Metric{Name: "sentByteCount", Value: atomic.LoadUint64(&loggregatorClient.sentByteCount), Tags: tags},
+		instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(&loggregatorClient.receivedByteCount), Tags: tags},
 	}
 }
 
