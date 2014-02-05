@@ -1,11 +1,11 @@
 package testhelpers
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/logmessage"
-	"time"
-	"testing"
 	"code.google.com/p/gogoprotobuf/proto"
+	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/stretchr/testify/assert"
+	"testing"
+	"time"
 )
 
 func MarshalledErrorLogMessage(t *testing.T, messageString string, appId, sourceId string) []byte {
@@ -41,7 +41,6 @@ func MarshalledDrainedNonWardenLogMessage(t *testing.T, messageString string, ap
 
 	return marshalProtoBuf(t, protoMessage)
 }
-
 
 func NewLogMessage(messageString, appId string) *logmessage.LogMessage {
 	messageType := logmessage.LogMessage_OUT
@@ -117,7 +116,7 @@ func generateLogMessage(messageString, appId string, messageType logmessage.LogM
 		AppId:       proto.String(appId),
 		MessageType: &messageType,
 		SourceName:  proto.String(sourceName),
-		SourceId:  proto.String(sourceId),
+		SourceId:    proto.String(sourceId),
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
 	}
 
