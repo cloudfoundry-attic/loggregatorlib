@@ -9,7 +9,8 @@ import (
 
 type AgentListener interface {
 	instrumentation.Instrumentable
-	Start() chan []byte
+	Start()
+	Stop()
 }
 
 type agentListener struct {
@@ -20,36 +21,39 @@ type agentListener struct {
 	dataChannel          chan []byte
 }
 
-func NewAgentListener(host string, givenLogger *gosteno.Logger) AgentListener {
-	return &agentListener{givenLogger, host, new(uint64), new(uint64), make(chan []byte, 1024)}
+func NewAgentListener(host string, givenLogger *gosteno.Logger) (AgentListener, <-chan []byte) {
+	byteChan := make(chan []byte, 1024)
+	return &agentListener{givenLogger, host, new(uint64), new(uint64), byteChan}, byteChan
 }
 
-func (agentListener *agentListener) Start() chan []byte {
+func (agentListener *agentListener) Start() {
 	connection, err := net.ListenPacket("udp", agentListener.host)
 	agentListener.Infof("Listening on port %s", agentListener.host)
 	if err != nil {
 		agentListener.Fatalf("Failed to listen on port. %s", err)
 	}
 
-	go func() {
-		readBuffer := make([]byte, 65535) //buffer with size = max theoretical UDP size
+	readBuffer := make([]byte, 65535) //buffer with size = max theoretical UDP size
 
-		for {
-			readCount, senderAddr, err := connection.ReadFrom(readBuffer)
-			if err != nil {
-				agentListener.Debugf("Error while reading. %s", err)
-			}
-			agentListener.Debugf("Read %d bytes from address %s", readCount, senderAddr)
-
-			readData := make([]byte, readCount) //pass on buffer in size only of read data
-			copy(readData, readBuffer[:readCount])
-
-			atomic.AddUint64(agentListener.receivedMessageCount, 1)
-			atomic.AddUint64(agentListener.receivedByteCount, uint64(readCount))
-			agentListener.dataChannel <- readData
+	for {
+		readCount, senderAddr, err := connection.ReadFrom(readBuffer)
+		if err != nil {
+			agentListener.Debugf("Error while reading. %s", err)
 		}
-	}()
-	return agentListener.dataChannel
+		agentListener.Debugf("Read %d bytes from address %s", readCount, senderAddr)
+
+		readData := make([]byte, readCount) //pass on buffer in size only of read data
+		copy(readData, readBuffer[:readCount])
+
+		atomic.AddUint64(agentListener.receivedMessageCount, 1)
+		atomic.AddUint64(agentListener.receivedByteCount, uint64(readCount))
+		agentListener.dataChannel <- readData
+	}
+
+}
+
+func (agentListener *agentListener) Stop() {
+
 }
 
 func (agentListener *agentListener) metrics() []instrumentation.Metric {

@@ -9,8 +9,8 @@ import (
 
 func TestThatItListens(t *testing.T) {
 
-	listener := NewAgentListener("127.0.0.1:3456", gosteno.NewLogger("TestLogger"))
-	dataChannel := listener.Start()
+	listener, dataChannel := NewAgentListener("127.0.0.1:3456", gosteno.NewLogger("TestLogger"))
+	go listener.Start()
 
 	expectedData := "Some Data"
 	otherData := "More stuff"

@@ -58,6 +58,24 @@ func NewMessage(t *testing.T, messageString, appId string) *logmessage.Message {
 	return logmessage.NewMessage(logMessage, marshalledLogMessage)
 }
 
+func NewMessageFromLogMessage(t *testing.T, logMessage *logmessage.LogMessage) *logmessage.Message {
+	marshalledLogMessage, err := proto.Marshal(logMessage)
+	assert.NoError(t, err)
+
+	return logmessage.NewMessage(logMessage, marshalledLogMessage)
+}
+
+
+func NewMessageWithSyslogDrain(t *testing.T, messageString, appId string, syslogDrains ...string) *logmessage.Message {
+	logMessage := generateLogMessage(messageString, appId, logmessage.LogMessage_OUT, "App", "")
+	logMessage.DrainUrls = syslogDrains
+
+	marshalledLogMessage, err := proto.Marshal(logMessage)
+	assert.NoError(t, err)
+
+	return logmessage.NewMessage(logMessage, marshalledLogMessage)
+}
+
 func NewMessageWithSourceId(t *testing.T, messageString, appId, sourceId string) *logmessage.Message {
 	logMessage := generateLogMessage(messageString, appId, logmessage.LogMessage_OUT, "App", sourceId)
 
