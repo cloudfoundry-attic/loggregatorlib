@@ -1,46 +1,64 @@
-package agentlistener
+package agentlistener_test
 
 import (
+	"fmt"
 	"github.com/cloudfoundry/gosteno"
-	"github.com/stretchr/testify/assert"
+	"github.com/cloudfoundry/loggregatorlib/agentlistener"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"net"
-	"testing"
 )
 
-func TestThatItListens(t *testing.T) {
+var _ = Describe("AgentListener", func() {
 
-	listener, dataChannel := NewAgentListener("127.0.0.1:3456", gosteno.NewLogger("TestLogger"))
-	go listener.Start()
+	Context("with a listner running", func() {
 
-	expectedData := "Some Data"
-	otherData := "More stuff"
+		var listener agentlistener.AgentListener
+		var dataChannel <-chan []byte
 
-	connection, err := net.Dial("udp", "localhost:3456")
+		BeforeEach(func() {
+			listener, dataChannel = agentlistener.NewAgentListener("127.0.0.1:3456", gosteno.NewLogger("TestLogger"))
+			go listener.Start()
+		})
 
-	_, err = connection.Write([]byte(expectedData))
-	assert.NoError(t, err)
+		AfterEach(func() {
+			listener.Stop()
+		})
 
-	_, err = connection.Write([]byte(otherData))
-	assert.NoError(t, err)
+		It("should listen to the socket", func(done Done) {
 
-	received := <-dataChannel
-	assert.Equal(t, expectedData, string(received))
+			expectedData := "Some Data"
+			otherData := "More stuff"
 
-	receivedAgain := <-dataChannel
-	assert.Equal(t, otherData, string(receivedAgain))
+			connection, err := net.Dial("udp", "localhost:3456")
 
-	metrics := listener.Emit().Metrics
-	assert.Equal(t, len(metrics), 3) //make sure all expected metrics are present
-	for _, metric := range metrics {
-		switch metric.Name {
-		case "currentBufferCount":
-			assert.Equal(t, metric.Value, 0)
-		case "receivedMessageCount":
-			assert.Equal(t, metric.Value, uint64(2))
-		case "receivedByteCount":
-			assert.Equal(t, metric.Value, uint64(19))
-		default:
-			t.Error("Got an invalid metric name: ", metric.Name)
-		}
-	}
-}
+			_, err = connection.Write([]byte(expectedData))
+			Expect(err).To(BeNil())
+
+			received := <-dataChannel
+			Expect(string(received)).To(Equal(expectedData))
+
+			_, err = connection.Write([]byte(otherData))
+			Expect(err).To(BeNil())
+
+			receivedAgain := <-dataChannel
+			Expect(string(receivedAgain)).To(Equal(otherData))
+
+			metrics := listener.Emit().Metrics
+			Expect(metrics).To(HaveLen(3)) //make sure all expected metrics are present
+			for _, metric := range metrics {
+				switch metric.Name {
+				case "currentBufferCount":
+					Expect(metric.Value).To(Equal(0))
+				case "receivedMessageCount":
+					Expect(metric.Value).To(Equal(uint64(2)))
+				case "receivedByteCount":
+					Expect(metric.Value).To(Equal(uint64(19)))
+				default:
+					Fail(fmt.Sprintf("Got an invalid metric name: %s", metric.Name))
+				}
+			}
+			close(done)
+		})
+	})
+})

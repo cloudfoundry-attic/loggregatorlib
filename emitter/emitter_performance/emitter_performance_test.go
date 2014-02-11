@@ -8,10 +8,8 @@ import (
 	"time"
 )
 
-// Reduce iterations for faster test suite performance
 const (
-	SECOND     = float64(1 * time.Second)
-	ITERATIONS = 1000
+	SECOND = float64(1 * time.Second)
 )
 
 type messageFixture struct {
@@ -54,15 +52,15 @@ func (m MockLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{}
 }
 
-func TestLogEnvelopeEmit(t *testing.T) {
+func BenchmarkLogEnvelopeEmit(b *testing.B) {
 	received := make(chan *[]byte, 1)
 	e, _ := emitter.NewEmitter("localhost:3457", "ROUTER", "42", "secret", nil)
 	e.LoggregatorClient = &MockLoggregatorClient{received}
 
-	testEmitHelper(t, e, received, true)
+	testEmitHelper(b, e, received, true)
 }
 
-func testEmitHelper(t *testing.T, e emitter.Emitter, received chan *[]byte, isEnvelope bool) {
+func testEmitHelper(b *testing.B, e emitter.Emitter, received chan *[]byte, isEnvelope bool) {
 	go func() {
 		for {
 			<-received
@@ -72,14 +70,14 @@ func testEmitHelper(t *testing.T, e emitter.Emitter, received chan *[]byte, isEn
 	for _, fixture := range messageFixtures {
 		startTime := time.Now().UnixNano()
 
-		for i := 0; i < ITERATIONS; i++ {
+		for i := 0; i < b.N; i++ {
 			e.Emit("appid", fixture.message)
 		}
 		elapsedTime := float64(time.Now().UnixNano() - startTime)
 
 		expected := fixture.getExpected(isEnvelope)
 		if elapsedTime > expected {
-			t.Errorf("Elapsed time for %s should have been below %vs, but was %vs", fixture.name, expected/SECOND, float64(elapsedTime)/SECOND)
+			b.Errorf("Elapsed time for %s should have been below %vs, but was %vs", fixture.name, expected/SECOND, float64(elapsedTime)/SECOND)
 		}
 	}
 }
