@@ -4,7 +4,6 @@ notifications:
   - cf-lamb@pivotallabs.com
 
 install:
-  - go get -d -v ./...
-  - ./get_dependencies
+  - go get -d -v -t ./...
 go:
-  - 1.1.2
+  - 1.2
