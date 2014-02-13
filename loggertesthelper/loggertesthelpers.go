@@ -3,48 +3,69 @@ package loggertesthelper
 import (
 	"github.com/cloudfoundry/gosteno"
 	"os"
+	"strings"
+	"sync"
 )
+
+var TestLoggerSink = new(TestStenoSink)
+var logger = getLogger(false)
 
 func StdOutLogger() *gosteno.Logger {
 	return getLogger(true)
 }
 
 func Logger() *gosteno.Logger {
-	return getLogger(false)
+	return logger
 }
 
 func getLogger(debug bool) *gosteno.Logger {
-	if debug {
-		level := gosteno.LOG_DEBUG
 
-		loggingConfig := &gosteno.Config{
-			Sinks:     make([]gosteno.Sink, 1),
-			Level:     level,
-			Codec:     gosteno.NewJsonCodec(),
-			EnableLOC: true,
-		}
-
-		loggingConfig.Sinks[0] = gosteno.NewIOSink(os.Stdout)
-
-		gosteno.Init(loggingConfig)
-	}
-
-	return gosteno.NewLogger("TestLogger")
-}
-
-func FileLogger(path string) *gosteno.Logger {
 	level := gosteno.LOG_DEBUG
 
 	loggingConfig := &gosteno.Config{
-		Sinks:     make([]gosteno.Sink, 1),
+		Sinks:     []gosteno.Sink{TestLoggerSink},
 		Level:     level,
 		Codec:     gosteno.NewJsonCodec(),
 		EnableLOC: true,
 	}
 
-	loggingConfig.Sinks[0] = gosteno.NewFileSink(path)
+	if debug {
+		loggingConfig.Sinks[0] = gosteno.NewIOSink(os.Stdout)
+	}
 
 	gosteno.Init(loggingConfig)
 
 	return gosteno.NewLogger("TestLogger")
+}
+
+type TestStenoSink struct {
+	sync.Mutex
+	records []*gosteno.Record
+	codec gosteno.Codec
+}
+
+func (t *TestStenoSink) AddRecord(record *gosteno.Record) {
+	t.Lock()
+	defer t.Unlock()
+	t.records = append(t.records, record)
+}
+func (t *TestStenoSink)  Flush() {}
+
+func (t *TestStenoSink) SetCodec(codec gosteno.Codec) {
+	t.codec = codec
+}
+
+func (t *TestStenoSink) GetCodec() gosteno.Codec {
+	return t.codec
+}
+
+func (t *TestStenoSink) LogContents() string {
+	t.Lock()
+	defer t.Unlock()
+
+	data := make([]string, len(t.records))
+	for i, record := range t.records {
+		data[i] = record.Message
+	}
+	return strings.Join(data, "\n")
 }
