@@ -17,12 +17,17 @@ type Config struct {
 	NatsPort   int
 	NatsUser   string
 	NatsPass   string
-	MbusClient *yagnats.Client
+	MbusClient yagnats.NATSClient
+}
+
+var DefaultYagnatsClientProvider = func (logger *gosteno.Logger) yagnats.NATSClient {
+	client := yagnats.NewClient()
+	client.Logger = logger
+	return client
 }
 
 func (c *Config) Validate(logger *gosteno.Logger) (err error) {
-	c.MbusClient = yagnats.NewClient()
-	c.MbusClient.Logger = logger
+	c.MbusClient = DefaultYagnatsClientProvider(logger)
 
 	addr := c.NatsHost + ":" + strconv.Itoa(c.NatsPort)
 	info := &yagnats.ConnectionInfo{
