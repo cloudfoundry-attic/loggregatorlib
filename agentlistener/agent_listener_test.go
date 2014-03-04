@@ -59,6 +59,6 @@ var _ = Describe("AgentListener", func() {
 				}
 			}
 			close(done)
-		})
+		}, 2)
 	})
 })
