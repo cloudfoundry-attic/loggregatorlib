@@ -41,7 +41,7 @@ func getLogger(debug bool) *gosteno.Logger {
 type TestStenoSink struct {
 	sync.Mutex
 	records []*gosteno.Record
-	codec gosteno.Codec
+	codec   gosteno.Codec
 }
 
 func (t *TestStenoSink) AddRecord(record *gosteno.Record) {
@@ -49,7 +49,7 @@ func (t *TestStenoSink) AddRecord(record *gosteno.Record) {
 	defer t.Unlock()
 	t.records = append(t.records, record)
 }
-func (t *TestStenoSink)  Flush() {}
+func (t *TestStenoSink) Flush() {}
 
 func (t *TestStenoSink) SetCodec(codec gosteno.Codec) {
 	t.codec = codec

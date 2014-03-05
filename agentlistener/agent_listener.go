@@ -19,7 +19,7 @@ type agentListener struct {
 	receivedMessageCount uint64
 	receivedByteCount    uint64
 	dataChannel          chan []byte
-	connection			 net.PacketConn
+	connection           net.PacketConn
 }
 
 func NewAgentListener(host string, givenLogger *gosteno.Logger) (AgentListener, <-chan []byte) {

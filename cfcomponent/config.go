@@ -20,7 +20,7 @@ type Config struct {
 	MbusClient yagnats.NATSClient
 }
 
-var DefaultYagnatsClientProvider = func (logger *gosteno.Logger) yagnats.NATSClient {
+var DefaultYagnatsClientProvider = func(logger *gosteno.Logger) yagnats.NATSClient {
 	client := yagnats.NewClient()
 	client.Logger = logger
 	return client
