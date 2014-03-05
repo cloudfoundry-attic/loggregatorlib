@@ -6,4 +6,4 @@ notifications:
 install:
   - go get -d -v -t ./...
 go:
-  - 1.2
+  - 1.2.1

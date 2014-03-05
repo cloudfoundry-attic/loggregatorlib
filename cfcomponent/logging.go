@@ -9,6 +9,8 @@ import (
 	"syscall"
 )
 
+var Logger *gosteno.Logger
+
 func NewLogger(verbose bool, logFilePath, name string, config Config) *gosteno.Logger {
 	level := gosteno.LOG_INFO
 
@@ -35,7 +37,12 @@ func NewLogger(verbose bool, logFilePath, name string, config Config) *gosteno.L
 	gosteno.Init(loggingConfig)
 	logger := gosteno.NewLogger(name)
 	logger.Debugf("Component %s in debug mode!", name)
+	setGlobalLogger(logger)
 	return logger
+}
+
+func setGlobalLogger(logger *gosteno.Logger) {
+	Logger = logger
 }
 
 func DumpGoRoutine() {
