@@ -61,6 +61,8 @@ func (r *registrar) greetRouter() (err error) {
 	r.mBusClient.PublishWithReplyTo(RouterGreetMessageSubject, inbox, []byte{})
 
 	routerRegisterInterval := 20 * time.Second
+	timer := time.NewTimer(30 * time.Second)
+	defer timer.Stop()
 	select {
 	case msg := <-response:
 		routerResponse := &RouterResponse{}
@@ -71,7 +73,7 @@ func (r *registrar) greetRouter() (err error) {
 			routerRegisterInterval = routerResponse.RegisterInterval * time.Second
 			r.Infof("Greeted the router. Setting register interval to %v seconds\n", routerResponse.RegisterInterval)
 		}
-	case <-time.After(30 * time.Second):
+	case <-timer.C:
 		err = errors.New("Did not get a response to router.greet!")
 	}
 
@@ -103,13 +105,17 @@ func (r *registrar) subscribeToRouterStart() {
 
 func (r *registrar) keepRegisteringWithRouter(hostname string, port uint32, uris []string) {
 	go func() {
+		timer := time.NewTimer(r.routerRegisterInterval)
+		defer timer.Stop()
 		for {
+			timer.Reset(r.routerRegisterInterval)
 			err := r.publishRouterMessage(hostname, port, uris, RouterRegisterMessageSubject)
 			if err != nil {
 				r.Error(err.Error())
 			}
 			r.Debug("Reregistered with router")
-			<-time.After(r.routerRegisterInterval)
+
+			<-timer.C
 		}
 	}()
 }
