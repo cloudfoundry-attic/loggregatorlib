@@ -69,3 +69,10 @@ func (t *TestStenoSink) LogContents() string {
 	}
 	return strings.Join(data, "\n")
 }
+
+func (t *TestStenoSink) Clear() {
+	t.Lock()
+	defer t.Unlock()
+
+	t.records = make([]string, 0, 20)
+}
