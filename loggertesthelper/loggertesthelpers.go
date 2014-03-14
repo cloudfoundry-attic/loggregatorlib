@@ -74,5 +74,5 @@ func (t *TestStenoSink) Clear() {
 	t.Lock()
 	defer t.Unlock()
 
-	t.records = make([]string, 0, 20)
+	t.records = make([]*gosteno.Record, 0, 20)
 }
