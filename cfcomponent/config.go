@@ -22,7 +22,7 @@ type Config struct {
 
 var DefaultYagnatsClientProvider = func(logger *gosteno.Logger) yagnats.NATSClient {
 	client := yagnats.NewClient()
-	client.Logger = logger
+	client.SetLogger(logger)
 	return client
 }
 

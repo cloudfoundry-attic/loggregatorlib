@@ -38,9 +38,8 @@ func TestGreetRouter(t *testing.T) {
 
 	select {
 	case <-resultChan:
-		assert.Equal(t, len(mbus.Subscriptions["router.greet"]), 1)
-		assert.Equal(t, len(mbus.Subscriptions["router.register"]), 1)
-		assert.Equal(t, len(mbus.Subscriptions), 4)
+		assert.Equal(t, len(mbus.Subscriptions("router.greet")), 1)
+		assert.Equal(t, len(mbus.Subscriptions("router.register")), 1)
 	case <-time.After(2 * time.Second):
 		t.Error("Router did not receive a router.start in time!")
 	}
