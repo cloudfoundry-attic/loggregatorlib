@@ -4,6 +4,7 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
+	"sync"
 	"sync/atomic"
 )
 
@@ -20,6 +21,7 @@ type agentListener struct {
 	receivedByteCount    uint64
 	dataChannel          chan []byte
 	connection           net.PacketConn
+	sync.RWMutex
 }
 
 func NewAgentListener(host string, givenLogger *gosteno.Logger) (AgentListener, <-chan []byte) {
@@ -33,7 +35,9 @@ func (agentListener *agentListener) Start() {
 		agentListener.Fatalf("Failed to listen on port. %s", err)
 	}
 	agentListener.Infof("Listening on port %s", agentListener.host)
+	agentListener.Lock()
 	agentListener.connection = connection
+	agentListener.Unlock()
 
 	readBuffer := make([]byte, 65535) //buffer with size = max theoretical UDP size
 	defer close(agentListener.dataChannel)
@@ -56,8 +60,9 @@ func (agentListener *agentListener) Start() {
 }
 
 func (agentListener *agentListener) Stop() {
+	agentListener.Lock()
+	defer agentListener.Unlock()
 	agentListener.connection.Close()
-
 }
 
 func (agentListener *agentListener) metrics() []instrumentation.Metric {
