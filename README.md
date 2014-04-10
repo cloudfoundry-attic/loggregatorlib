@@ -1,5 +1,6 @@
-loggregatorlib [![Build Status](https://travis-ci.org/cloudfoundry/loggregatorlib.png?branch=master)](https://travis-ci.org/cloudfoundry/loggregatorlib)
-==================
+#loggregatorlib 
+
+[![Build Status](https://travis-ci.org/cloudfoundry/loggregatorlib.png?branch=master)](https://travis-ci.org/cloudfoundry/loggregatorlib) [![Coverage Status](https://coveralls.io/repos/cloudfoundry/loggregatorlib/badge.png?branch=master)](https://coveralls.io/r/cloudfoundry/loggregatorlib?branch=master)
 
 Loggregatorlib includes packages and libraries used by loggregator.
 
