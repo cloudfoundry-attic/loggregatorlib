@@ -3,9 +3,9 @@ package cfcomponent
 import (
 	"errors"
 	"fmt"
+
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/yagnats"
-	"strconv"
 )
 
 type Config struct {
@@ -13,7 +13,7 @@ type Config struct {
 	VarzPort   uint32
 	VarzUser   string
 	VarzPass   string
-	NatsHost   string
+	NatsHosts  []string
 	NatsPort   int
 	NatsUser   string
 	NatsPass   string
@@ -27,17 +27,28 @@ var DefaultYagnatsClientProvider = func(logger *gosteno.Logger) yagnats.NATSClie
 }
 
 func (c *Config) Validate(logger *gosteno.Logger) (err error) {
-	c.MbusClient = DefaultYagnatsClientProvider(logger)
+	members := []yagnats.ConnectionProvider{}
 
-	addr := c.NatsHost + ":" + strconv.Itoa(c.NatsPort)
-	info := &yagnats.ConnectionInfo{
-		Addr:     addr,
-		Username: c.NatsUser,
-		Password: c.NatsPass,
+	for _, natsHost := range c.NatsHosts {
+		members = append(members, &yagnats.ConnectionInfo{
+			Addr:     fmt.Sprintf("%s:%d", natsHost, c.NatsPort),
+			Username: c.NatsUser,
+			Password: c.NatsPass,
+		})
 	}
-	err = c.MbusClient.Connect(info)
+
+	connectionInfo := &yagnats.ConnectionCluster{
+		Members: members,
+	}
+
+	natsClient := yagnats.NewClient()
+
+	err = natsClient.Connect(connectionInfo)
+
 	if err != nil {
 		return errors.New(fmt.Sprintf("Could not connect to NATS: %v", err.Error()))
 	}
+
+	c.MbusClient = natsClient
 	return
 }
