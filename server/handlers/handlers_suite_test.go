@@ -1,4 +1,4 @@
-package loggregatorlib_test
+package handlers_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestLoggregatorlib(t *testing.T) {
+func TestHandlers(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Loggregatorlib Suite")
+	RunSpecs(t, "Handlers Suite")
 }
