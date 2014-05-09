@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/server"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -10,12 +9,11 @@ import (
 
 type websocketHandler struct {
 	messages  <-chan []byte
-	logger    *gosteno.Logger
 	keepAlive time.Duration
 }
 
-func NewWebsocketHandler(m <-chan []byte, logger *gosteno.Logger, keepAlive time.Duration) *websocketHandler {
-	return &websocketHandler{messages: m, logger: logger, keepAlive: keepAlive}
+func NewWebsocketHandler(m <-chan []byte, keepAlive time.Duration) *websocketHandler {
+	return &websocketHandler{messages: m, keepAlive: keepAlive}
 }
 
 func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {

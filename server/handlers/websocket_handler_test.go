@@ -1,7 +1,6 @@
 package handlers_test
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/loggregatorlib/server/handlers"
 	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
@@ -21,7 +20,7 @@ var _ = Describe("WebsocketHandler", func() {
 	BeforeEach(func() {
 		fakeResponseWriter = httptest.NewRecorder()
 		messagesChan = make(chan []byte, 10)
-		handler = handlers.NewWebsocketHandler(messagesChan, loggertesthelper.Logger(), 100*time.Millisecond)
+		handler = handlers.NewWebsocketHandler(messagesChan, 100*time.Millisecond)
 		handlerDone = make(chan struct{})
 		testServer = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			handler.ServeHTTP(rw, r)
