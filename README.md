@@ -12,11 +12,7 @@ Setup
 
     export GOPATH=`pwd`
 
-    mkdir -p src/github.com/cloudfoundry
-
-    cd src/github.com/cloudfoundry
-
-    git clone https://github.com/cloudfoundry/loggregatorlib.git
+    go get github.com/cloudfoundry/loggregatorlib
 
 
 
