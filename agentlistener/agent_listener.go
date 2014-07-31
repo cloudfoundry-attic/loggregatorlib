@@ -21,12 +21,13 @@ type agentListener struct {
 	receivedByteCount    uint64
 	dataChannel          chan []byte
 	connection           net.PacketConn
+	contextName          string
 	sync.RWMutex
 }
 
-func NewAgentListener(host string, givenLogger *gosteno.Logger) (AgentListener, <-chan []byte) {
+func NewAgentListener(host string, givenLogger *gosteno.Logger, name string) (AgentListener, <-chan []byte) {
 	byteChan := make(chan []byte, 1024)
-	return &agentListener{Logger: givenLogger, host: host, dataChannel: byteChan}, byteChan
+	return &agentListener{Logger: givenLogger, host: host, dataChannel: byteChan, contextName: name}, byteChan
 }
 
 func (agentListener *agentListener) Start() {
@@ -74,7 +75,7 @@ func (agentListener *agentListener) metrics() []instrumentation.Metric {
 }
 
 func (agentListener *agentListener) Emit() instrumentation.Context {
-	return instrumentation.Context{Name: "agentListener",
+	return instrumentation.Context{Name: agentListener.contextName,
 		Metrics: agentListener.metrics(),
 	}
 }

@@ -17,7 +17,7 @@ var _ = Describe("AgentListener", func() {
 		var dataChannel <-chan []byte
 
 		BeforeEach(func() {
-			listener, dataChannel = agentlistener.NewAgentListener("127.0.0.1:3456", gosteno.NewLogger("TestLogger"))
+			listener, dataChannel = agentlistener.NewAgentListener("127.0.0.1:3456", gosteno.NewLogger("TestLogger"), "agentListener")
 			go listener.Start()
 		})
 
@@ -60,5 +60,14 @@ var _ = Describe("AgentListener", func() {
 			}
 			close(done)
 		}, 2)
+	})
+
+	Context("Emit", func() {
+		It("uses the given name for the context", func() {
+			listener, _ := agentlistener.NewAgentListener("127.0.0.1:3456", gosteno.NewLogger("TestLogger"), "secretAgentOrange")
+			context := listener.Emit()
+
+			Expect(context.Name).To(Equal("secretAgentOrange"))
+		})
 	})
 })
