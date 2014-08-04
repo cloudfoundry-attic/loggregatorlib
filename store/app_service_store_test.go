@@ -1,10 +1,10 @@
 package store_test
 
 import (
+	. "github.com/cloudfoundry/loggregatorlib/store"
 	"github.com/cloudfoundry/storeadapter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/cloudfoundry/loggregatorlib/store"
 	"path"
 
 	"github.com/cloudfoundry/loggregatorlib/appservice"

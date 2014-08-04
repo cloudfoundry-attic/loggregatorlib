@@ -4,8 +4,8 @@ import (
 	"github.com/cloudfoundry/storeadapter"
 	"path"
 
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 	"github.com/cloudfoundry/loggregatorlib/appservice"
+	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 	"github.com/cloudfoundry/loggregatorlib/store/cache"
 )
 
