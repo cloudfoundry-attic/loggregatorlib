@@ -100,8 +100,6 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 		})
 	})
 
-	PIt("handles errors")
-
 	Describe("when the store has data and watcher is bootstrapped", func() {
 		BeforeEach(func(done Done) {
 			adapter.Create(buildNode(app1Service1))

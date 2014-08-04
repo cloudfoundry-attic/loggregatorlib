@@ -25,7 +25,6 @@ func TestStore(t *testing.T) {
 
 	cmd := exec.Command("which", "etcd")
 	error := cmd.Run()
-	println(error == nil)
 	if error != nil {
 		panic("etcd binary not found; required for StoreSuite")
 	}

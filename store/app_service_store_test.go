@@ -146,23 +146,6 @@ var _ = Describe("AppServiceStore", func() {
 					close(done)
 				})
 			})
-
-			PIt("adds a TTL to the associated app", func(done Done) {
-				app2Service2 := appservice.AppService{AppId: app2Service1.AppId, Url: "syslog://new.example.com:12345"}
-
-				incomingChan <- appservice.AppServices{
-					AppId: app2Service1.AppId,
-					Urls:  []string{app2Service1.Url, app2Service2.Url},
-				}
-
-				assertInStore(app2Service1, app2Service2)
-
-				node, err := adapter.ListRecursively("/loggregator/services/app-2")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(node.TTL).NotTo(BeZero())
-
-				close(done)
-			})
 		})
 
 		Context("when a service or app should be removed", func() {
@@ -199,10 +182,6 @@ var _ = Describe("AppServiceStore", func() {
 
 					close(done)
 				})
-			})
-
-			Context("when an app is deleted (i.e. we get no reports about it on the incoming channel)", func() {
-				PIt("(eventually) removes the app entirely", func() {})
 			})
 		})
 
