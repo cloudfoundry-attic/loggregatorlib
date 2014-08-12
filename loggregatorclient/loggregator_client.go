@@ -1,8 +1,8 @@
 package loggregatorclient
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/generic_logger"
+	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
 	"sync/atomic"
 )

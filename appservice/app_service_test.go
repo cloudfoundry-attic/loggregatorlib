@@ -1,9 +1,9 @@
 package appservice_test
 
 import (
+	. "github.com/cloudfoundry/loggregatorlib/appservice"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/cloudfoundry/loggregatorlib/appservice"
 )
 
 var _ = Describe("AppService", func() {
