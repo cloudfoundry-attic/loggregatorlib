@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
+	"sync"
 	"testing"
 	"time"
 )

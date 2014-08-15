@@ -4,10 +4,8 @@ import (
 	"errors"
 	. "github.com/cloudfoundry/loggregatorlib/store"
 	"github.com/cloudfoundry/loggregatorlib/store/cache"
-	"github.com/cloudfoundry/storeadapter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sync"
 )
 
 var _ = Describe("AppServiceStoreWatcherUnit", func() {
