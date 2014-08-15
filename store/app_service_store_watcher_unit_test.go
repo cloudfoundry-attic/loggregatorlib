@@ -11,12 +11,18 @@ import (
 var _ = Describe("AppServiceStoreWatcherUnit", func() {
 	Context("when there is an error", func() {
 		var adapter *FakeAdapter
+		var stopChan chan struct{}
 
 		BeforeEach(func() {
 			adapter = &FakeAdapter{}
 			watcher, _, _ := NewAppServiceStoreWatcher(adapter, cache.NewAppServiceCache())
 
-			go watcher.Run()
+			stopChan = make(chan struct{})
+			go watcher.Run(stopChan)
+		})
+
+		AfterEach(func() {
+			close(stopChan)
 		})
 
 		It("calls watch again", func() {

@@ -56,7 +56,7 @@ func (w *AppServiceStoreWatcher) Exists(appService appservice.AppService) bool {
 	return w.cache.Exists(appService)
 }
 
-func (w *AppServiceStoreWatcher) Run() {
+func (w *AppServiceStoreWatcher) Run(outerStopChan <-chan struct{}) {
 	defer func() {
 		close(w.outAddChan)
 		close(w.outRemoveChan)
@@ -70,9 +70,9 @@ func (w *AppServiceStoreWatcher) Run() {
 	InnerLoop:
 		for {
 			select {
-			case err := <-errChan:
-				if err == nil {
-					return
+			case err, ok := <-errChan:
+				if !ok {
+					break InnerLoop
 				}
 				cfcomponent.Logger.Errorf("AppStoreWatcher: Got error while waiting for ETCD events: %s", err.Error())
 				close(stopChan)
@@ -80,7 +80,7 @@ func (w *AppServiceStoreWatcher) Run() {
 
 			case event, ok := <-events:
 				if !ok {
-					return
+					break InnerLoop
 				}
 
 				cfcomponent.Logger.Debugf("AppStoreWatcher: Got an event from store %s", event.Type)
@@ -96,11 +96,12 @@ func (w *AppServiceStoreWatcher) Run() {
 				case storeadapter.ExpireEvent:
 					w.deleteEvent(*(event.PrevNode))
 				}
+
+			case <-outerStopChan:
+				return
 			}
 		}
-
 	}
-
 }
 
 func (w *AppServiceStoreWatcher) registerExistingServicesFromStore() {

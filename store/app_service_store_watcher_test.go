@@ -23,6 +23,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 	var adapter storeadapter.StoreAdapter
 	var outAddChan <-chan appservice.AppService
 	var outRemoveChan <-chan appservice.AppService
+	var stopChan chan struct{}
 
 	var app1Service1 appservice.AppService
 	var app1Service2 appservice.AppService
@@ -48,6 +49,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 
 		c := cache.NewAppServiceCache()
 		watcher, outAddChan, outRemoveChan = NewAppServiceStoreWatcher(adapter, c)
+		stopChan = make(chan struct{})
 	})
 
 	AfterEach(func() {
@@ -58,10 +60,11 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 
 	Describe("Shutdown", func() {
 		It("should close the outgoing channels", func() {
-			go watcher.Run()
+			go watcher.Run(stopChan)
 			time.Sleep(500 * time.Millisecond)
 			adapter.Disconnect()
 
+			close(stopChan)
 			Eventually(outRemoveChan).Should(BeClosed())
 			Eventually(outAddChan).Should(BeClosed())
 		})
@@ -70,7 +73,8 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 	Describe("Loading watcher state on startup", func() {
 		Context("when the store is empty", func() {
 			It("should not send anything on the output channels", func() {
-				go watcher.Run()
+				go watcher.Run(stopChan)
+				defer close(stopChan)
 
 				Consistently(outAddChan).Should(BeEmpty())
 				Consistently(outRemoveChan).Should(BeEmpty())
@@ -85,7 +89,8 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 			})
 
 			It("should send all the AppServices on the output add channel", func(done Done) {
-				go watcher.Run()
+				go watcher.Run(stopChan)
+				defer close(stopChan)
 
 				appServices := drainOutgoingChannel(outAddChan, 3)
 
@@ -101,14 +106,21 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 	})
 
 	Describe("when the store has data and watcher is bootstrapped", func() {
+		var stopChan chan struct{}
+
 		BeforeEach(func(done Done) {
 			adapter.Create(buildNode(app1Service1))
 			adapter.Create(buildNode(app1Service2))
 			adapter.Create(buildNode(app2Service1))
 
-			go watcher.Run()
+			stopChan = make(chan struct{})
+			go watcher.Run(stopChan)
 			drainOutgoingChannel(outAddChan, 3)
 			close(done)
+		})
+
+		AfterEach(func() {
+			close(stopChan)
 		})
 
 		It("does not send updates when the data has already been processed", func(done Done) {
