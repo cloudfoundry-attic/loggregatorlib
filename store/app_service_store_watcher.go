@@ -64,23 +64,43 @@ func (w *AppServiceStoreWatcher) Run() {
 
 	w.registerExistingServicesFromStore()
 
-	events, _, _ := w.adapter.Watch("/loggregator/services")
+	for {
+		events, stopChan, errChan := w.adapter.Watch("/loggregator/services")
 
-	for event := range events {
-		cfcomponent.Logger.Debugf("AppStoreWatcher: Got an event from store %s", event.Type)
-		switch event.Type {
-		case storeadapter.CreateEvent, storeadapter.UpdateEvent:
-			if event.Node.Dir || len(event.Node.Value) == 0 {
-				// we can ignore any directory nodes (app or other namespace additions)
-				continue
+	InnerLoop:
+		for {
+			select {
+			case err := <-errChan:
+				if err == nil {
+					return
+				}
+				cfcomponent.Logger.Errorf("AppStoreWatcher: Got error while waiting for ETCD events: %s", err.Error())
+				close(stopChan)
+				break InnerLoop
+
+			case event, ok := <-events:
+				if !ok {
+					return
+				}
+
+				cfcomponent.Logger.Debugf("AppStoreWatcher: Got an event from store %s", event.Type)
+				switch event.Type {
+				case storeadapter.CreateEvent, storeadapter.UpdateEvent:
+					if event.Node.Dir || len(event.Node.Value) == 0 {
+						// we can ignore any directory nodes (app or other namespace additions)
+						continue
+					}
+					w.Add(appServiceFromStoreNode(*(event.Node)))
+				case storeadapter.DeleteEvent:
+					w.deleteEvent(*(event.PrevNode))
+				case storeadapter.ExpireEvent:
+					w.deleteEvent(*(event.PrevNode))
+				}
 			}
-			w.Add(appServiceFromStoreNode(*(event.Node)))
-		case storeadapter.DeleteEvent:
-			w.deleteEvent(*(event.PrevNode))
-		case storeadapter.ExpireEvent:
-			w.deleteEvent(*(event.PrevNode))
 		}
+
 	}
+
 }
 
 func (w *AppServiceStoreWatcher) registerExistingServicesFromStore() {
