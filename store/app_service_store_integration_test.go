@@ -13,7 +13,6 @@ var _ = Describe("AppServiceStoreIntegration", func() {
 		incomingChan  chan appservice.AppServices
 		outAddChan    <-chan appservice.AppService
 		outRemoveChan <-chan appservice.AppService
-		stopChan chan struct{}
 	)
 
 	BeforeEach(func() {
@@ -23,15 +22,10 @@ var _ = Describe("AppServiceStoreIntegration", func() {
 		c := cache.NewAppServiceCache()
 		var watcher *AppServiceStoreWatcher
 		watcher, outAddChan, outRemoveChan = NewAppServiceStoreWatcher(adapter, c)
-		stopChan = make(chan struct{})
-		go watcher.Run(stopChan)
+		go watcher.Run()
 
 		store := NewAppServiceStore(adapter, watcher)
 		go store.Run(incomingChan)
-	})
-
-	AfterEach(func() {
-		close(stopChan)
 	})
 
 	It("should receive, store, and republish AppServices", func(done Done) {
