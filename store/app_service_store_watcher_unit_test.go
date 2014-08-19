@@ -4,16 +4,19 @@ import (
 	"errors"
 	. "github.com/cloudfoundry/loggregatorlib/store"
 	"github.com/cloudfoundry/loggregatorlib/store/cache"
+	"github.com/cloudfoundry/storeadapter"
+	"github.com/cloudfoundry/storeadapter/fakestoreadapter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sync"
 )
 
 var _ = Describe("AppServiceStoreWatcherUnit", func() {
 	Context("when there is an error", func() {
-		var adapter *FakeAdapter
+		var adapter *fakeStoreAdapter
 
 		BeforeEach(func() {
-			adapter = &FakeAdapter{}
+			adapter = newFSA()
 			watcher, _, _ := NewAppServiceStoreWatcher(adapter, cache.NewAppServiceCache())
 
 			go watcher.Run()
@@ -26,3 +29,32 @@ var _ = Describe("AppServiceStoreWatcherUnit", func() {
 		})
 	})
 })
+
+type fakeStoreAdapter struct {
+	*fakestoreadapter.FakeStoreAdapter
+	watchCounter int
+	sync.Mutex
+}
+
+func (fsa *fakeStoreAdapter) Watch(key string) (events <-chan storeadapter.WatchEvent, stop chan<- bool, errors <-chan error) {
+	events, _, errors = fsa.FakeStoreAdapter.Watch(key)
+
+	fsa.Lock()
+	defer fsa.Unlock()
+	fsa.watchCounter++
+
+	return events, make(chan bool), errors
+}
+
+func (fsa *fakeStoreAdapter) GetWatchCounter() int {
+	fsa.Lock()
+	defer fsa.Unlock()
+
+	return fsa.watchCounter
+}
+
+func newFSA() *fakeStoreAdapter {
+	return &fakeStoreAdapter{
+		FakeStoreAdapter: fakestoreadapter.New(),
+	}
+}

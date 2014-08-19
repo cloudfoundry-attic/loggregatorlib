@@ -120,7 +120,6 @@ func appServiceFromStoreNode(node storeadapter.StoreNode) appservice.AppService 
 	appId := path.Base(path.Dir(key))
 	serviceUrl := string(node.Value)
 	appService := appservice.AppService{AppId: appId, Url: serviceUrl}
-
 	return appService
 }
 

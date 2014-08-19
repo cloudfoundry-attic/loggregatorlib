@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
-	"sync"
 	"testing"
 	"time"
 )
@@ -66,53 +65,4 @@ func buildNode(appService appservice.AppService) storeadapter.StoreNode {
 		Key:   path.Join("/loggregator/services", appService.AppId, appService.Id()),
 		Value: []byte(appService.Url),
 	}
-}
-
-type FakeAdapter struct {
-	DeleteCount     int
-	WatchErrChannel chan error
-	WatchCounter    int
-	sync.Mutex
-}
-
-func (adapter *FakeAdapter) GetWatchCounter() int {
-	adapter.Lock()
-	defer adapter.Unlock()
-	return adapter.WatchCounter
-}
-
-func (adapter *FakeAdapter) Connect() error                      { return nil }
-func (adapter *FakeAdapter) Create(storeadapter.StoreNode) error { return nil }
-func (adapter *FakeAdapter) Update(storeadapter.StoreNode) error { return nil }
-func (adapter *FakeAdapter) CompareAndSwap(storeadapter.StoreNode, storeadapter.StoreNode) error {
-	return nil
-}
-func (adapter *FakeAdapter) CompareAndSwapByIndex(uint64, storeadapter.StoreNode) error {
-	return nil
-}
-
-func (adapter *FakeAdapter) SetMulti(nodes []storeadapter.StoreNode) error { return nil }
-func (adapter *FakeAdapter) Get(key string) (storeadapter.StoreNode, error) {
-	return storeadapter.StoreNode{}, nil
-}
-func (adapter *FakeAdapter) ListRecursively(key string) (storeadapter.StoreNode, error) {
-	return storeadapter.StoreNode{}, nil
-}
-func (adapter *FakeAdapter) Delete(keys ...string) error {
-	adapter.DeleteCount++
-	return nil
-}
-func (adapter *FakeAdapter) CompareAndDelete(storeadapter.StoreNode) error { return nil }
-func (adapter *FakeAdapter) UpdateDirTTL(key string, ttl uint64) error     { return nil }
-func (adapter *FakeAdapter) Watch(key string) (events <-chan storeadapter.WatchEvent, stop chan<- bool, errors <-chan error) {
-	adapter.Lock()
-	defer adapter.Unlock()
-	adapter.WatchCounter++
-	adapter.WatchErrChannel = make(chan error, 1)
-
-	return nil, make(chan bool), adapter.WatchErrChannel
-}
-func (adapter *FakeAdapter) Disconnect() error { return nil }
-func (adapter *FakeAdapter) MaintainNode(storeNode storeadapter.StoreNode) (lostNode <-chan bool, releaseNode chan chan bool, err error) {
-	return nil, nil, nil
 }
