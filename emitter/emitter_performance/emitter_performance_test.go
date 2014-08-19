@@ -43,7 +43,7 @@ func messageWithNewlines() string {
 func BenchmarkLogEnvelopeEmit(b *testing.B) {
 	received := make(chan *[]byte, 1)
 	e, _ := emitter.NewEmitter("localhost:3457", "ROUTER", "42", "secret", nil)
-	e.LoggregatorClient = &fake.FakeLoggregatorClient{received}
+	e.LoggregatorClient = &fake.FakeLoggregatorClient{Received: received}
 
 	testEmitHelper(b, e, received, true)
 }

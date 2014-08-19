@@ -24,7 +24,7 @@ var _ = Describe("Testing with Ginkgo", func() {
 		emitter, err = NewEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		emitter.LoggregatorClient = &fake.FakeLoggregatorClient{received}
+		emitter.LoggregatorClient = &fake.FakeLoggregatorClient{Received: received}
 
 	})
 
@@ -108,7 +108,7 @@ var _ = Describe("Testing with Ginkgo", func() {
 	It("source name is set if mapping is unknown", func() {
 		emitter, err := NewEmitter("localhost:3456", "XYZ", "42", "secret", nil)
 		Expect(err).ToNot(HaveOccurred())
-		emitter.LoggregatorClient = &fake.FakeLoggregatorClient{received}
+		emitter.LoggregatorClient = &fake.FakeLoggregatorClient{Received: received}
 
 		emitter.Emit("test_app_id", "test_msg")
 		receivedMessage := extractLogMessage(<-received)
