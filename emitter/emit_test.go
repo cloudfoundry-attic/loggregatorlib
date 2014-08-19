@@ -139,6 +139,9 @@ func (m MockLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{}
 }
 
+func (m MockLoggregatorClient) Stop() {
+}
+
 func extractLogEnvelope(data *[]byte) *logmessage.LogEnvelope {
 	receivedEnvelope := &logmessage.LogEnvelope{}
 

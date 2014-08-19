@@ -52,6 +52,8 @@ func (m MockLoggregatorClient) Emit() instrumentation.Context {
 	return instrumentation.Context{}
 }
 
+func (m MockLoggregatorClient) Stop() {}
+
 func BenchmarkLogEnvelopeEmit(b *testing.B) {
 	received := make(chan *[]byte, 1)
 	e, _ := emitter.NewEmitter("localhost:3457", "ROUTER", "42", "secret", nil)
