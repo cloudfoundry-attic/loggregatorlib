@@ -40,7 +40,7 @@ var _ = Describe("AppServiceUnit", func() {
 				AppId: app1Service1.AppId,
 				Urls:  []string{},
 			}
-			Ω(adapter.DeleteCount).Should(Equal(1))
+			Expect(adapter.DeleteCount).To(Equal(1))
 		})
 	})
 })
