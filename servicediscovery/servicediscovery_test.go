@@ -121,25 +121,44 @@ var _ = Describe("ServiceDiscovery", func() {
 
 		go list.Run(1 * time.Millisecond)
 
-			Eventually(list.GetAddresses).Should(HaveLen(1))
+		Eventually(list.GetAddresses).Should(HaveLen(1))
 
-			storeAdapter.Lock()
-			storeAdapter.ListErrInjector = fakestoreadapter.NewFakeStoreAdapterErrorInjector("", storeadapter.ErrorKeyNotFound)
-			storeAdapter.Unlock()
+		storeAdapter.Lock()
+		storeAdapter.ListErrInjector = fakestoreadapter.NewFakeStoreAdapterErrorInjector("", storeadapter.ErrorKeyNotFound)
+		storeAdapter.Unlock()
 
-			Consistently(list.GetAddresses).Should(HaveLen(1))
+		Consistently(list.GetAddresses).Should(HaveLen(1))
 	})
 
-		It("excludes nodes with no value", func() {
-				node := storeadapter.StoreNode{
-				Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-				Value: []byte{},
-			}
+	It("continues to run if the store times out", func() {
+		node := storeadapter.StoreNode{
+			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
+			Value: []byte("10.0.0.1"),
+		}
 
-				storeAdapter.Create(node)
+		storeAdapter.Create(node)
 
-				go list.Run(1 * time.Millisecond)
+		go list.Run(1 * time.Millisecond)
 
-				Consistently(list.GetAddresses).Should(BeEmpty())
-		})
+		Eventually(list.GetAddresses).Should(HaveLen(1))
+
+		storeAdapter.Lock()
+		storeAdapter.ListErrInjector = fakestoreadapter.NewFakeStoreAdapterErrorInjector("", storeadapter.ErrorTimeout)
+		storeAdapter.Unlock()
+
+		Consistently(list.GetAddresses).Should(HaveLen(1))
+	})
+
+	It("excludes nodes with no value", func() {
+		node := storeadapter.StoreNode{
+			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
+			Value: []byte{},
+		}
+
+		storeAdapter.Create(node)
+
+		go list.Run(1 * time.Millisecond)
+
+		Consistently(list.GetAddresses).Should(BeEmpty())
+	})
 })

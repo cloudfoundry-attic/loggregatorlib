@@ -48,6 +48,11 @@ func (list *serverAddressList) Run(updateInterval time.Duration) {
 				continue
 			}
 
+			if err == storeadapter.ErrorTimeout {
+				list.logger.Debug("ServerAddressList.Run: Timed out talking to store; will try again soon.")
+				continue
+			}
+
 			if err != nil {
 				panic(err) //FIXME: understand error modes and recovery cases better
 			}
@@ -56,7 +61,7 @@ func (list *serverAddressList) Run(updateInterval time.Duration) {
 
 			addresses := []string{}
 
-		for _, leaf := range leaves {
+			for _, leaf := range leaves {
 				addresses = append(addresses, string(leaf.Value))
 			}
 
