@@ -33,7 +33,7 @@ var _ = Describe("LoggregatorClientPool", func() {
 
 		stopChan = make(chan struct{})
 		logger = steno.NewLogger("TestLogger")
-		pool = clientpool.NewLoggregatorClientPool(logger, 3456, false)
+		pool = clientpool.NewLoggregatorClientPool(logger, 3456)
 	})
 
 	Describe("RandomClient", func() {
@@ -94,26 +94,14 @@ var _ = Describe("LoggregatorClientPool", func() {
 				})
 			}
 
-			Context("with 'create clients' disabled", func() {
-				It("a nil client eventually appears in the pool", func() {
-					defer close(stopChan)
-					addServer()
+			It("a non-nil client eventually appears in the pool", func() {
+				defer close(stopChan)
+				pool = clientpool.NewLoggregatorClientPool(logger, 3456)
 
-					Eventually(pool.ListClients).Should(HaveLen(1))
-					Expect(pool.ListClients()[0]).To(BeNil())
-				})
-			})
+				addServer()
 
-			Context("with 'create clients' enabled", func() {
-				It("a non-nil client eventually appears in the pool", func() {
-					defer close(stopChan)
-					pool = clientpool.NewLoggregatorClientPool(logger, 3456, true)
-
-					addServer()
-
-					Eventually(pool.ListClients).Should(HaveLen(1))
-					Expect(pool.ListClients()[0]).ToNot(BeNil())
-				})
+				Eventually(pool.ListClients).Should(HaveLen(1))
+				Expect(pool.ListClients()[0]).ToNot(BeNil())
 			})
 
 			It("adds more servers later", func() {

@@ -16,14 +16,12 @@ var ErrorEmptyClientPool = errors.New("loggregator client pool is empty")
 type LoggregatorClientPool struct {
 	clients              map[string]loggregatorclient.LoggregatorClient
 	logger               *gosteno.Logger
-	createClientsEnabled bool
 	loggregatorPort      int
 	sync.RWMutex
 }
 
-func NewLoggregatorClientPool(logger *gosteno.Logger, port int, createClients bool) *LoggregatorClientPool {
+func NewLoggregatorClientPool(logger *gosteno.Logger, port int) *LoggregatorClientPool {
 	return &LoggregatorClientPool{
-		createClientsEnabled: createClients,
 		loggregatorPort:      port,
 		clients:              make(map[string]loggregatorclient.LoggregatorClient),
 		logger:               logger,
@@ -86,9 +84,7 @@ func (pool *LoggregatorClientPool) syncWithNodes(nodes []storeadapter.StoreNode)
 		}
 
 		var client loggregatorclient.LoggregatorClient
-		if pool.createClientsEnabled {
-			client = loggregatorclient.NewLoggregatorClient(addr, pool.logger, loggregatorclient.DefaultBufferSize)
-		}
+		client = loggregatorclient.NewLoggregatorClient(addr, pool.logger, loggregatorclient.DefaultBufferSize)
 		pool.clients[addr] = client
 	}
 
