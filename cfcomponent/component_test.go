@@ -232,11 +232,11 @@ func TestVarzEndpoint(t *testing.T) {
 				"metrics": []interface{}{
 					map[string]interface{}{
 						"name":  "messagesReceived",
-						"value": 2004,
+						"value": float64(2004),
 					},
 					map[string]interface{}{
 						"name":  "queueLength",
-						"value": 5,
+						"value": float64(5),
 						"tags": map[string]interface{}{
 							"tagName1": "tagValue1",
 							"tagName2": "tagValue2",
@@ -249,7 +249,7 @@ func TestVarzEndpoint(t *testing.T) {
 				"metrics": []interface{}{
 					map[string]interface{}{
 						"name":  "activeSinkCount",
-						"value": 3,
+						"value": float64(3),
 					},
 				},
 			},

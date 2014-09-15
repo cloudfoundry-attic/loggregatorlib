@@ -95,10 +95,12 @@ func (d UaaTokenDecoder) Decode(authToken string) (tp TokenPayload, err error) {
 
 func restorePadding(seg string) string {
 	switch len(seg) % 4 {
+	case 1:
+		seg = seg + "==="
 	case 2:
 		seg = seg + "=="
 	case 3:
-		seg = seg + "==="
+		seg = seg + "="
 	}
 	return seg
 }
