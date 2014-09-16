@@ -4,21 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
+
+	"github.com/apcera/nats"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/yagnats"
 	uuid "github.com/nu7hatch/gouuid"
-	"sync"
-	"time"
 )
 
 type registrar struct {
 	*gosteno.Logger
-	mBusClient             yagnats.NATSClient
+	mBusClient             yagnats.ApceraWrapperNATSClient
 	routerRegisterInterval time.Duration
 	lock                   sync.RWMutex
 }
 
-func NewRouterRegistrar(mBusClient yagnats.NATSClient, logger *gosteno.Logger) *registrar {
+func NewRouterRegistrar(mBusClient yagnats.ApceraWrapperNATSClient, logger *gosteno.Logger) *registrar {
 	return &registrar{mBusClient: mBusClient, Logger: logger}
 }
 
@@ -54,8 +56,8 @@ func (r *registrar) greetRouter() (err error) {
 		return err
 	}
 
-	r.mBusClient.Subscribe(inbox, func(msg *yagnats.Message) {
-		callback([]byte(msg.Payload))
+	r.mBusClient.Subscribe(inbox, func(msg *nats.Msg) {
+		callback([]byte(msg.Data))
 	})
 
 	r.mBusClient.PublishWithReplyTo(RouterGreetMessageSubject, inbox, []byte{})
@@ -85,8 +87,8 @@ func (r *registrar) greetRouter() (err error) {
 }
 
 func (r *registrar) subscribeToRouterStart() {
-	r.mBusClient.Subscribe(RouterStartMessageSubject, func(msg *yagnats.Message) {
-		payload := msg.Payload
+	r.mBusClient.Subscribe(RouterStartMessageSubject, func(msg *nats.Msg) {
+		payload := msg.Data
 		routerResponse := &RouterResponse{}
 		err := json.Unmarshal(payload, routerResponse)
 		if err != nil {
