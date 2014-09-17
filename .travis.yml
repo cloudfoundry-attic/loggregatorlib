@@ -20,8 +20,7 @@ install:
 
 before_script:
 - wget https://github.com/coreos/etcd/archive/v0.4.6.tar.gz -O /tmp/etcd-0.4.6.tar.gz
-- cd /tmp && tar -xzf etcd-0.4.6.tar.gz && cd etcd-0.4.6 && ./build
-- export PATH=$PATH:/tmp/etcd-0.4.6/bin
+- cd /tmp && tar -xzf etcd-0.4.6.tar.gz mv etcd-0.4.6 $GOPATH/src/etcd && cd $GOPATH/src/etcd && ./build && go install
 
 script:
 - go vet ./...
