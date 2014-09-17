@@ -8,7 +8,6 @@ before_install:
 - go get code.google.com/p/go.tools/cmd/vet
 - go get github.com/mattn/goveralls
 - go get github.com/onsi/ginkgo/ginkgo
-- go get -d github.com/coreos/etcd
 
 after_success:
 - 'echo "mode: set" > all.coverprofile'
@@ -20,7 +19,8 @@ install:
 
 before_script:
 - wget https://github.com/coreos/etcd/archive/v0.4.6.tar.gz -O /tmp/etcd-0.4.6.tar.gz
-- cd /tmp && tar -xzf etcd-0.4.6.tar.gz && mv etcd-0.4.6 /home/travis/gopath/src/etcd && cd /home/travis/gopath/src/etcd && ./build && go install
+- mkdir -p $HOME/gopath/src/github.com/coreos
+- cd /tmp && tar -xzf etcd-0.4.6.tar.gz && mv etcd-0.4.6 $HOME/gopath/src/github.com/coreos/etcd && cd $HOME/gopath/src/github.com/coreos/etcd && ./build && go install
 
 script:
 - go vet ./...
