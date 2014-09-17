@@ -2,20 +2,21 @@ package collectorregistrar
 
 import (
 	"encoding/json"
+	"testing"
+
+	"github.com/apcera/nats"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
-	"github.com/cloudfoundry/yagnats"
 	"github.com/cloudfoundry/yagnats/fakeyagnats"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestAnnounceComponent(t *testing.T) {
 	cfc := getTestCFComponent()
-	mbus := fakeyagnats.New()
+	mbus := fakeyagnats.NewApceraClientWrapper()
 
-	called := make(chan *yagnats.Message, 10)
-	mbus.Subscribe(AnnounceComponentMessageSubject, func(response *yagnats.Message) {
+	called := make(chan *nats.Msg, 10)
+	mbus.Subscribe(AnnounceComponentMessageSubject, func(response *nats.Msg) {
 		called <- response
 	})
 
@@ -24,16 +25,16 @@ func TestAnnounceComponent(t *testing.T) {
 
 	expectedJson, _ := createYagnatsMessage(t, AnnounceComponentMessageSubject)
 
-	payloadBytes := (<-called).Payload
+	payloadBytes := (<-called).Data
 	assert.Equal(t, expectedJson, payloadBytes)
 }
 
 func TestSubscribeToComponentDiscover(t *testing.T) {
 	cfc := getTestCFComponent()
-	mbus := fakeyagnats.New()
+	mbus := fakeyagnats.NewApceraClientWrapper()
 
-	called := make(chan *yagnats.Message, 10)
-	mbus.Subscribe(DiscoverComponentMessageSubject, func(response *yagnats.Message) {
+	called := make(chan *nats.Msg, 10)
+	mbus.Subscribe(DiscoverComponentMessageSubject, func(response *nats.Msg) {
 		called <- response
 	})
 
@@ -43,11 +44,11 @@ func TestSubscribeToComponentDiscover(t *testing.T) {
 	expectedJson, _ := createYagnatsMessage(t, DiscoverComponentMessageSubject)
 	mbus.PublishWithReplyTo(DiscoverComponentMessageSubject, "unused-reply", expectedJson)
 
-	payloadBytes := (<-called).Payload
+	payloadBytes := (<-called).Data
 	assert.Equal(t, expectedJson, payloadBytes)
 }
 
-func createYagnatsMessage(t *testing.T, subject string) ([]byte, *yagnats.Message) {
+func createYagnatsMessage(t *testing.T, subject string) ([]byte, *nats.Msg) {
 
 	expected := &AnnounceComponentMessage{
 		Type:        "Loggregator Server",
@@ -60,10 +61,10 @@ func createYagnatsMessage(t *testing.T, subject string) ([]byte, *yagnats.Messag
 	expectedJson, err := json.Marshal(expected)
 	assert.NoError(t, err)
 
-	yagnatsMsg := &yagnats.Message{
+	yagnatsMsg := &nats.Msg{
 		Subject: subject,
-		ReplyTo: "reply_to",
-		Payload: expectedJson,
+		Reply:   "reply_to",
+		Data:    expectedJson,
 	}
 
 	return expectedJson, yagnatsMsg

@@ -14,17 +14,17 @@ import (
 var ErrorEmptyClientPool = errors.New("loggregator client pool is empty")
 
 type LoggregatorClientPool struct {
-	clients              map[string]loggregatorclient.LoggregatorClient
-	logger               *gosteno.Logger
-	loggregatorPort      int
+	clients         map[string]loggregatorclient.LoggregatorClient
+	logger          *gosteno.Logger
+	loggregatorPort int
 	sync.RWMutex
 }
 
 func NewLoggregatorClientPool(logger *gosteno.Logger, port int) *LoggregatorClientPool {
 	return &LoggregatorClientPool{
-		loggregatorPort:      port,
-		clients:              make(map[string]loggregatorclient.LoggregatorClient),
-		logger:               logger,
+		loggregatorPort: port,
+		clients:         make(map[string]loggregatorclient.LoggregatorClient),
+		logger:          logger,
 	}
 }
 

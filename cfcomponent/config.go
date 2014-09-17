@@ -17,24 +17,17 @@ type Config struct {
 	NatsPort   int
 	NatsUser   string
 	NatsPass   string
-	MbusClient yagnats.NATSClient
+	MbusClient yagnats.ApceraWrapperNATSClient
 }
 
-var DefaultYagnatsClientProvider = func(logger *gosteno.Logger, c *Config) (natsClient yagnats.NATSClient, err error) {
-	members := []yagnats.ConnectionProvider{}
+var DefaultYagnatsClientProvider = func(logger *gosteno.Logger, c *Config) (natsClient yagnats.ApceraWrapperNATSClient, err error) {
+	members := make([]string, 0)
 	for _, natsHost := range c.NatsHosts {
-		members = append(members, &yagnats.ConnectionInfo{
-			Addr:     fmt.Sprintf("%s:%d", natsHost, c.NatsPort),
-			Username: c.NatsUser,
-			Password: c.NatsPass,
-		})
+		members = append(members, fmt.Sprintf("nats://%s:%s@%s:%d", c.NatsUser, c.NatsPass, natsHost, c.NatsPort))
 	}
 
-	connectionInfo := &yagnats.ConnectionCluster{
-		Members: members,
-	}
-	natsClient = yagnats.NewClient()
-	err = natsClient.Connect(connectionInfo)
+	natsClient = yagnats.NewApceraClientWrapper(members)
+	err = natsClient.Connect()
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Could not connect to NATS: %v", err.Error()))
 	}
