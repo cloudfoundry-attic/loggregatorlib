@@ -6,8 +6,6 @@ import (
 	"fmt"
 	steno "github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
-	"github.com/cloudfoundry/storeadapter"
-	"github.com/cloudfoundry/storeadapter/fakestoreadapter"
 	"math/rand"
 	"time"
 
@@ -21,27 +19,45 @@ var _ = BeforeSuite(func() {
 
 var _ = Describe("LoggregatorClientPool", func() {
 	var (
-		adapter  *fakestoreadapter.FakeStoreAdapter
-		pool     *clientpool.LoggregatorClientPool
-		stopChan chan struct{}
-		logger   *steno.Logger
+		pool       *clientpool.LoggregatorClientPool
+		logger     *steno.Logger
+		fakeGetter *fakeAddressGetter
 	)
 
 	BeforeEach(func() {
-		adapter = fakestoreadapter.New()
-
-		stopChan = make(chan struct{})
 		logger = steno.NewLogger("TestLogger")
-		pool = clientpool.NewLoggregatorClientPool(logger, 3456)
+		fakeGetter = &fakeAddressGetter{}
+		pool = clientpool.NewLoggregatorClientPool(logger, 3456, fakeGetter)
+	})
+
+	Describe("ListClients", func() {
+		Context("with empty address list", func() {
+			It("returns an empty client list", func() {
+				fakeGetter.addresses = []string{}
+				Expect(pool.ListClients()).To(HaveLen(0))
+			})
+		})
+
+		Context("with a non-empty address list", func() {
+			It("returns a client for every address", func() {
+				fakeGetter.addresses = []string{"127.0.0.1", "127.0.0.2"}
+				Expect(pool.ListClients()).To(HaveLen(2))
+			})
+		})
+
+		It("re-uses existing clients", func() {
+			fakeGetter.addresses = []string{"127.0.0.1"}
+			client1 := pool.ListClients()[0]
+			client2 := pool.ListClients()[0]
+			Expect(client1).To(Equal(client2))
+		})
 	})
 
 	Describe("RandomClient", func() {
 		Context("with a non-empty client pool", func() {
 			It("chooses a client with roughly uniform distribution", func() {
 				for i := 0; i < 5; i++ {
-					addr := fmt.Sprintf("127.0.0.1:%d", i)
-					client := loggregatorclient.NewLoggregatorClient(addr, logger, loggregatorclient.DefaultBufferSize)
-					pool.Add(addr, client)
+					fakeGetter.addresses = append(fakeGetter.addresses, fmt.Sprintf("127.0.0.%d", i))
 				}
 
 				counts := make(map[loggregatorclient.LoggregatorClient]int)
@@ -64,108 +80,12 @@ var _ = Describe("LoggregatorClientPool", func() {
 		})
 	})
 
-	Describe("RunUpdateLoop", func() {
-		It("shuts down when stopChan is closed", func() {
-			doneChan := make(chan struct{})
-
-			go func() {
-				pool.RunUpdateLoop(adapter, "z1", stopChan, 10*time.Millisecond)
-				close(doneChan)
-			}()
-
-			close(stopChan)
-
-			Eventually(doneChan).Should(BeClosed())
-		})
-
-		Context("when store adds a server", func() {
-			var addServer = func() {
-				doneChan := make(chan struct{})
-
-				go func() {
-					pool.RunUpdateLoop(adapter, "z1", stopChan, 10*time.Millisecond)
-					close(doneChan)
-				}()
-
-				adapter.Create(storeadapter.StoreNode{
-					Key:   "z1/loggregator_trafficcontroller_z1/0",
-					Value: []byte("127.0.0.1"),
-				})
-			}
-
-			It("a non-nil client eventually appears in the pool", func() {
-				defer close(stopChan)
-				pool = clientpool.NewLoggregatorClientPool(logger, 3456)
-
-				addServer()
-
-				Eventually(pool.ListClients).Should(HaveLen(1))
-				Expect(pool.ListClients()[0]).ToNot(BeNil())
-			})
-
-			It("adds more servers later", func() {
-				defer close(stopChan)
-
-				doneChan := make(chan struct{})
-
-				go func() {
-					pool.RunUpdateLoop(adapter, "z1", stopChan, 10*time.Millisecond)
-					close(doneChan)
-				}()
-
-				adapter.Create(storeadapter.StoreNode{
-					Key:   "z1/loggregator_trafficcontroller_z1/0",
-					Value: []byte("127.0.0.1"),
-				})
-
-				Eventually(pool.ListClients).Should(HaveLen(1))
-
-				adapter.Create(storeadapter.StoreNode{
-					Key:   "z1/loggregator_trafficcontroller_z1/1",
-					Value: []byte("127.0.0.2"),
-				})
-
-				Eventually(pool.ListClients).Should(HaveLen(2))
-				Eventually(pool.ListAddresses).Should(ConsistOf("127.0.0.1:3456", "127.0.0.2:3456"))
-			})
-
-			It("does not duplicate known servers", func() {
-				pool.Add("127.0.0.1", loggregatorclient.NewLoggregatorClient("127.0.0.1:1", logger, loggregatorclient.DefaultBufferSize))
-
-				defer close(stopChan)
-
-				doneChan := make(chan struct{})
-
-				go func() {
-					pool.RunUpdateLoop(adapter, "z1", stopChan, 10*time.Millisecond)
-					close(doneChan)
-				}()
-
-				adapter.Create(storeadapter.StoreNode{
-					Key:   "z1/loggregator_trafficcontroller_z1/0",
-					Value: []byte("127.0.0.1"),
-				})
-
-				Eventually(pool.ListClients).Should(HaveLen(1))
-				Consistently(pool.ListClients).Should(HaveLen(1))
-			})
-		})
-
-		Context("when store removes a server", func() {
-			It("eventually disappears from the pool", func() {
-				pool.Add("127.0.0.1", loggregatorclient.NewLoggregatorClient("127.0.0.1:3456", logger, loggregatorclient.DefaultBufferSize))
-
-				defer close(stopChan)
-
-				doneChan := make(chan struct{})
-
-				go func() {
-					pool.RunUpdateLoop(adapter, "z1", stopChan, 10*time.Millisecond)
-					close(doneChan)
-				}()
-
-				Eventually(pool.ListClients).Should(HaveLen(0))
-			})
-		})
-	})
 })
+
+type fakeAddressGetter struct {
+	addresses []string
+}
+
+func (getter *fakeAddressGetter) GetAddresses() []string {
+	return getter.addresses
+}

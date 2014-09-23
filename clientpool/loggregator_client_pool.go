@@ -5,29 +5,45 @@ import (
 	"fmt"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
-	"github.com/cloudfoundry/storeadapter"
 	"math/rand"
 	"sync"
-	"time"
-	"github.com/cloudfoundry/loggregatorlib/servicediscovery"
 )
 
 var ErrorEmptyClientPool = errors.New("loggregator client pool is empty")
+
+type AddressGetter interface {
+	GetAddresses() []string
+}
 
 type LoggregatorClientPool struct {
 	clients         map[string]*loggregatorclient.LoggregatorClient
 	logger          *gosteno.Logger
 	loggregatorPort int
 	sync.RWMutex
-	serverAddressList servicediscovery.ServerAddressList
+	serverAddressGetter AddressGetter
 }
 
-func NewLoggregatorClientPool(logger *gosteno.Logger, port int) *LoggregatorClientPool {
+func NewLoggregatorClientPool(logger *gosteno.Logger, port int, getter AddressGetter) *LoggregatorClientPool {
 	return &LoggregatorClientPool{
-		loggregatorPort: port,
-		clients:         make(map[string]*loggregatorclient.LoggregatorClient),
-		logger:          logger,
+		loggregatorPort:     port,
+		clients:             make(map[string]*loggregatorclient.LoggregatorClient),
+		logger:              logger,
+		serverAddressGetter: getter,
 	}
+}
+
+func (pool *LoggregatorClientPool) ListClients() []loggregatorclient.LoggregatorClient {
+	pool.syncWithAddressList(pool.serverAddressGetter.GetAddresses())
+
+	pool.RLock()
+	defer pool.RUnlock()
+
+	val := make([]loggregatorclient.LoggregatorClient, 0, len(pool.clients))
+	for _, client := range pool.clients {
+		val = append(val, *client)
+	}
+
+	return val
 }
 
 func (pool *LoggregatorClientPool) RandomClient() (loggregatorclient.LoggregatorClient, error) {
@@ -37,24 +53,6 @@ func (pool *LoggregatorClientPool) RandomClient() (loggregatorclient.Loggregator
 	}
 
 	return list[rand.Intn(len(list))], nil
-}
-
-func (pool *LoggregatorClientPool) RunUpdateLoop(storeAdapter storeadapter.StoreAdapter, key string, stopChan <-chan struct{}, interval time.Duration) {
-	pool.serverAddressList = servicediscovery.NewServerAddressList(storeAdapter, key, pool.logger)
-	go pool.serverAddressList.Run(interval)
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			pool.syncWithAddressList(pool.serverAddressList.GetAddresses())
-		case <-stopChan:
-			pool.serverAddressList.Stop()
-			return
-		}
-	}
 }
 
 func (pool *LoggregatorClientPool) syncWithAddressList(addresses []string) {
@@ -76,50 +74,7 @@ func (pool *LoggregatorClientPool) syncWithAddressList(addresses []string) {
 	pool.clients = newClients
 }
 
-func (pool *LoggregatorClientPool) ListClients() []loggregatorclient.LoggregatorClient {
-	pool.RLock()
-	defer pool.RUnlock()
-
-	val := make([]loggregatorclient.LoggregatorClient, 0, len(pool.clients))
-	for _, client := range pool.clients {
-		val = append(val, *client)
-	}
-
-	return val
-}
-
-func (pool *LoggregatorClientPool) ListAddresses() []string {
-	pool.RLock()
-	defer pool.RUnlock()
-
-	val := make([]string, 0, len(pool.clients))
-	for addr := range pool.clients {
-		val = append(val, addr)
-	}
-
-	return val
-}
-
-func (pool *LoggregatorClientPool) Add(address string, client loggregatorclient.LoggregatorClient) {
-	pool.Lock()
-	defer pool.Unlock()
-
-	pool.clients[address] = &client
-}
-
 func (pool *LoggregatorClientPool) hasServerFor(addr string) bool {
 	_, ok := pool.clients[addr]
 	return ok
-}
-
-func leafNodes(root storeadapter.StoreNode) []storeadapter.StoreNode {
-	if !root.Dir {
-		return []storeadapter.StoreNode{root}
-	}
-
-	leaves := []storeadapter.StoreNode{}
-	for _, node := range root.ChildNodes {
-		leaves = append(leaves, leafNodes(node)...)
-	}
-	return leaves
 }
