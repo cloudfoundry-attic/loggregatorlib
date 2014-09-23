@@ -1,4 +1,4 @@
-package collectorregistrar
+package legacycollectorregistrar
 
 import (
 	"encoding/json"
