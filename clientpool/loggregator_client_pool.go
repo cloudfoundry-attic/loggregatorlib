@@ -9,21 +9,23 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+	"github.com/cloudfoundry/loggregatorlib/servicediscovery"
 )
 
 var ErrorEmptyClientPool = errors.New("loggregator client pool is empty")
 
 type LoggregatorClientPool struct {
-	clients         map[string]loggregatorclient.LoggregatorClient
+	clients         map[string]*loggregatorclient.LoggregatorClient
 	logger          *gosteno.Logger
 	loggregatorPort int
 	sync.RWMutex
+	serverAddressList servicediscovery.ServerAddressList
 }
 
 func NewLoggregatorClientPool(logger *gosteno.Logger, port int) *LoggregatorClientPool {
 	return &LoggregatorClientPool{
 		loggregatorPort: port,
-		clients:         make(map[string]loggregatorclient.LoggregatorClient),
+		clients:         make(map[string]*loggregatorclient.LoggregatorClient),
 		logger:          logger,
 	}
 }
@@ -38,59 +40,40 @@ func (pool *LoggregatorClientPool) RandomClient() (loggregatorclient.Loggregator
 }
 
 func (pool *LoggregatorClientPool) RunUpdateLoop(storeAdapter storeadapter.StoreAdapter, key string, stopChan <-chan struct{}, interval time.Duration) {
+	pool.serverAddressList = servicediscovery.NewServerAddressList(storeAdapter, key, pool.logger)
+	go pool.serverAddressList.Run(interval)
+
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			serverRoot, err := storeAdapter.ListRecursively(key)
-
-			var nodes []storeadapter.StoreNode
-
-			switch err {
-			case nil:
-				nodes = leafNodes(serverRoot)
-			case storeadapter.ErrorKeyNotFound:
-				nodes = []storeadapter.StoreNode{}
-			default:
-				pool.logger.Errorf("RunUpdateLoop: Error communicating with etcd: %s", err.Error())
-				continue
-			}
-
-			pool.syncWithNodes(nodes)
-
+			pool.syncWithAddressList(pool.serverAddressList.GetAddresses())
 		case <-stopChan:
+			pool.serverAddressList.Stop()
 			return
 		}
 	}
 }
 
-func (pool *LoggregatorClientPool) syncWithNodes(nodes []storeadapter.StoreNode) {
+func (pool *LoggregatorClientPool) syncWithAddressList(addresses []string) {
 	pool.Lock()
 	defer pool.Unlock()
 
-	addressesToBeDeleted := make(map[string]bool)
-	for addr := range pool.clients {
-		addressesToBeDeleted[addr] = true
-	}
+	newClients := make(map[string]*loggregatorclient.LoggregatorClient, len(addresses))
 
-	for _, node := range nodes {
-		addr := fmt.Sprintf("%s:%d", node.Value, pool.loggregatorPort)
-		delete(addressesToBeDeleted, addr)
+	for _, address := range addresses {
+		clientIdentifier := fmt.Sprintf("%s:%d", address, pool.loggregatorPort)
 
-		if pool.hasServerFor(addr) {
-			continue
+		if pool.hasServerFor(clientIdentifier) {
+			newClients[clientIdentifier] = pool.clients[clientIdentifier]
+		} else {
+			client := loggregatorclient.NewLoggregatorClient(clientIdentifier, pool.logger, loggregatorclient.DefaultBufferSize)
+			newClients[clientIdentifier] = &client
 		}
-
-		var client loggregatorclient.LoggregatorClient
-		client = loggregatorclient.NewLoggregatorClient(addr, pool.logger, loggregatorclient.DefaultBufferSize)
-		pool.clients[addr] = client
 	}
-
-	for addr := range addressesToBeDeleted {
-		delete(pool.clients, addr)
-	}
+	pool.clients = newClients
 }
 
 func (pool *LoggregatorClientPool) ListClients() []loggregatorclient.LoggregatorClient {
@@ -99,7 +82,7 @@ func (pool *LoggregatorClientPool) ListClients() []loggregatorclient.Loggregator
 
 	val := make([]loggregatorclient.LoggregatorClient, 0, len(pool.clients))
 	for _, client := range pool.clients {
-		val = append(val, client)
+		val = append(val, *client)
 	}
 
 	return val
@@ -121,7 +104,7 @@ func (pool *LoggregatorClientPool) Add(address string, client loggregatorclient.
 	pool.Lock()
 	defer pool.Unlock()
 
-	pool.clients[address] = client
+	pool.clients[address] = &client
 }
 
 func (pool *LoggregatorClientPool) hasServerFor(addr string) bool {

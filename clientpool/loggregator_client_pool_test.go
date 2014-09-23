@@ -3,7 +3,6 @@ package clientpool_test
 import (
 	"github.com/cloudfoundry/loggregatorlib/clientpool"
 
-	"errors"
 	"fmt"
 	steno "github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
@@ -165,28 +164,6 @@ var _ = Describe("LoggregatorClientPool", func() {
 				}()
 
 				Eventually(pool.ListClients).Should(HaveLen(0))
-			})
-		})
-
-		Context("when store returns an error", func() {
-			BeforeEach(func() {
-				adapter.ListErrInjector = fakestoreadapter.NewFakeStoreAdapterErrorInjector(".*", errors.New("list error"))
-			})
-
-			It("does not change the pool and continues to run", func() {
-				defer close(stopChan)
-				doneChan := make(chan struct{})
-
-				pool.Add("127.0.0.1", loggregatorclient.NewLoggregatorClient("127.0.0.1:3456", logger, loggregatorclient.DefaultBufferSize))
-				originalList := pool.ListClients()
-
-				go func() {
-					pool.RunUpdateLoop(adapter, "z1", stopChan, 10*time.Millisecond)
-					close(doneChan)
-				}()
-
-				Consistently(doneChan).ShouldNot(BeClosed())
-				Consistently(pool.ListClients).Should(Equal(originalList))
 			})
 		})
 	})
