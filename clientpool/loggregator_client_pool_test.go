@@ -146,6 +146,7 @@ var _ = Describe("LoggregatorClientPool", func() {
 					Value: []byte("127.0.0.1"),
 				})
 
+				Eventually(pool.ListClients).Should(HaveLen(1))
 				Consistently(pool.ListClients).Should(HaveLen(1))
 			})
 		})
