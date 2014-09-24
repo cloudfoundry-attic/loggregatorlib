@@ -15,12 +15,12 @@ import (
 
 type registrar struct {
 	*gosteno.Logger
-	mBusClient             yagnats.ApceraWrapperNATSClient
+	mBusClient             yagnats.NATSConn
 	routerRegisterInterval time.Duration
 	lock                   sync.RWMutex
 }
 
-func NewRouterRegistrar(mBusClient yagnats.ApceraWrapperNATSClient, logger *gosteno.Logger) *registrar {
+func NewRouterRegistrar(mBusClient yagnats.NATSConn, logger *gosteno.Logger) *registrar {
 	return &registrar{mBusClient: mBusClient, Logger: logger}
 }
 
@@ -60,7 +60,7 @@ func (r *registrar) greetRouter() (err error) {
 		callback([]byte(msg.Data))
 	})
 
-	r.mBusClient.PublishWithReplyTo(RouterGreetMessageSubject, inbox, []byte{})
+	r.mBusClient.PublishRequest(RouterGreetMessageSubject, inbox, []byte{})
 
 	routerRegisterInterval := 20 * time.Second
 	timer := time.NewTimer(30 * time.Second)

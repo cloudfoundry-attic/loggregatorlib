@@ -11,10 +11,10 @@ import (
 
 type collectorRegistrar struct {
 	*gosteno.Logger
-	mBusClient yagnats.ApceraWrapperNATSClient
+	mBusClient yagnats.NATSConn
 }
 
-func NewCollectorRegistrar(mBusClient yagnats.ApceraWrapperNATSClient, logger *gosteno.Logger) *collectorRegistrar {
+func NewCollectorRegistrar(mBusClient yagnats.NATSConn, logger *gosteno.Logger) *collectorRegistrar {
 	return &collectorRegistrar{mBusClient: mBusClient, Logger: logger}
 }
 

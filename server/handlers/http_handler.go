@@ -1,14 +1,14 @@
 package handlers
 
 import (
+	"github.com/cloudfoundry/gosteno"
 	"mime/multipart"
 	"net/http"
-	"github.com/cloudfoundry/gosteno"
 )
 
 type httpHandler struct {
 	messages <-chan []byte
-	logger *gosteno.Logger
+	logger   *gosteno.Logger
 }
 
 func NewHttpHandler(m <-chan []byte, logger *gosteno.Logger) *httpHandler {
