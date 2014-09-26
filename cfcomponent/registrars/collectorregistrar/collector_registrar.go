@@ -3,13 +3,14 @@ package collectorregistrar
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 	"github.com/cloudfoundry/yagnats"
-	"time"
 )
 
-type ClientProvider func(*gosteno.Logger, *cfcomponent.Config) (yagnats.ApceraWrapperNATSClient, error)
+type ClientProvider func(*gosteno.Logger, *cfcomponent.Config) (yagnats.NATSConn, error)
 
 type CollectorRegistrar interface {
 	Run(stopChan <-chan struct{})
@@ -20,7 +21,7 @@ type collectorRegistrar struct {
 	interval       time.Duration
 	logger         *gosteno.Logger
 	cfc            cfcomponent.Component
-	client         yagnats.ApceraWrapperNATSClient
+	client         yagnats.NATSConn
 	config         *cfcomponent.Config
 }
 
@@ -46,7 +47,7 @@ func (registrar *collectorRegistrar) Run(stopChan <-chan struct{}) {
 			err := registrar.announceMessage()
 			if err != nil {
 				if registrar.client != nil {
-					registrar.client.Disconnect()
+					registrar.client.Close()
 					registrar.client = nil
 				}
 				registrar.logger.Warn(err.Error())

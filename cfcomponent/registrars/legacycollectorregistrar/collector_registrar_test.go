@@ -13,7 +13,7 @@ import (
 
 func TestAnnounceComponent(t *testing.T) {
 	cfc := getTestCFComponent()
-	mbus := fakeyagnats.NewApceraClientWrapper()
+	mbus := fakeyagnats.Connect()
 
 	called := make(chan *nats.Msg, 10)
 	mbus.Subscribe(AnnounceComponentMessageSubject, func(response *nats.Msg) {
@@ -31,7 +31,7 @@ func TestAnnounceComponent(t *testing.T) {
 
 func TestSubscribeToComponentDiscover(t *testing.T) {
 	cfc := getTestCFComponent()
-	mbus := fakeyagnats.NewApceraClientWrapper()
+	mbus := fakeyagnats.Connect()
 
 	called := make(chan *nats.Msg, 10)
 	mbus.Subscribe(DiscoverComponentMessageSubject, func(response *nats.Msg) {
@@ -42,7 +42,7 @@ func TestSubscribeToComponentDiscover(t *testing.T) {
 	registrar.subscribeToComponentDiscover(cfc)
 
 	expectedJson, _ := createYagnatsMessage(t, DiscoverComponentMessageSubject)
-	mbus.PublishWithReplyTo(DiscoverComponentMessageSubject, "unused-reply", expectedJson)
+	mbus.PublishRequest(DiscoverComponentMessageSubject, "unused-reply", expectedJson)
 
 	payloadBytes := (<-called).Data
 	assert.Equal(t, expectedJson, payloadBytes)

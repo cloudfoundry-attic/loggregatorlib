@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/loggregatorlib/server/handlers"
 	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"time"
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 )
 
 var _ = Describe("WebsocketHandler", func() {

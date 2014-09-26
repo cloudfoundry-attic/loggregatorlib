@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/loggregatorlib/server/handlers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -9,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 )
 
 var _ = Describe("HttpHandler", func() {

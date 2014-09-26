@@ -15,7 +15,7 @@ func TestGreetRouter(t *testing.T) {
 	routerReceivedChannel := make(chan *nats.Msg, 10)
 	resultChan := make(chan bool)
 
-	mbus := fakeyagnats.NewApceraClientWrapper()
+	mbus := fakeyagnats.Connect()
 	fakeRouter(mbus, routerReceivedChannel)
 	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 
@@ -50,7 +50,7 @@ func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
 	routerReceivedChannel := make(chan *nats.Msg)
 	resultChan := make(chan bool)
 
-	mbus := fakeyagnats.NewApceraClientWrapper()
+	mbus := fakeyagnats.Connect()
 	fakeBrokenGreeterRouter(mbus, routerReceivedChannel)
 	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 
@@ -82,7 +82,7 @@ func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
 func TestDefaultIntervalIsSetWhenGreetWithoutRouter(t *testing.T) {
 	resultChan := make(chan bool)
 
-	mbus := fakeyagnats.NewApceraClientWrapper()
+	mbus := fakeyagnats.Connect()
 	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 
 	go func() {
@@ -111,7 +111,7 @@ func TestDefaultIntervalIsSetWhenGreetWithoutRouter(t *testing.T) {
 }
 
 func TestKeepRegisteringWithRouter(t *testing.T) {
-	mbus := fakeyagnats.NewApceraClientWrapper()
+	mbus := fakeyagnats.Connect()
 	os.Setenv("LOG_TO_STDOUT", "false")
 	routerReceivedChannel := make(chan *nats.Msg)
 	fakeRouter(mbus, routerReceivedChannel)
@@ -132,7 +132,7 @@ func TestKeepRegisteringWithRouter(t *testing.T) {
 }
 
 func TestSubscribeToRouterStart(t *testing.T) {
-	mbus := fakeyagnats.NewApceraClientWrapper()
+	mbus := fakeyagnats.Connect()
 	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 	registrar.subscribeToRouterStart()
 
@@ -161,7 +161,7 @@ func TestSubscribeToRouterStart(t *testing.T) {
 }
 
 func TestUnregisterFromRouter(t *testing.T) {
-	mbus := fakeyagnats.NewApceraClientWrapper()
+	mbus := fakeyagnats.Connect()
 	routerReceivedChannel := make(chan *nats.Msg, 10)
 	fakeRouter(mbus, routerReceivedChannel)
 
@@ -183,7 +183,7 @@ const messageFromRouter = `{
   							"minimumRegisterIntervalInSeconds": 42
 							}`
 
-func fakeRouter(mbus *fakeyagnats.FakeApceraWrapper, returnChannel chan *nats.Msg) {
+func fakeRouter(mbus *fakeyagnats.FakeNATSConn, returnChannel chan *nats.Msg) {
 	mbus.Subscribe("router.greet", func(msg *nats.Msg) {
 		mbus.Publish(msg.Reply, []byte(messageFromRouter))
 	})
@@ -208,7 +208,7 @@ func fakeRouter(mbus *fakeyagnats.FakeApceraWrapper, returnChannel chan *nats.Ms
 	})
 }
 
-func fakeBrokenGreeterRouter(mbus *fakeyagnats.FakeApceraWrapper, returnChannel chan *nats.Msg) {
+func fakeBrokenGreeterRouter(mbus *fakeyagnats.FakeNATSConn, returnChannel chan *nats.Msg) {
 
 	mbus.Subscribe("router.greet", func(msg *nats.Msg) {
 		mbus.Publish(msg.Reply, []byte("garbel garbel"))

@@ -4,6 +4,9 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/registrars/collectorregistrar"
 
 	"errors"
+	"sync/atomic"
+	"time"
+
 	"github.com/apcera/nats"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
@@ -12,8 +15,6 @@ import (
 	"github.com/cloudfoundry/yagnats/fakeyagnats"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sync/atomic"
-	"time"
 )
 
 var _ = Describe("Collectorregistrar", func() {
@@ -36,7 +37,7 @@ var _ = Describe("Collectorregistrar", func() {
 				return nil
 			}
 			fakeClientProviderCallCount = 0
-			fakeClientProvider := func(*gosteno.Logger, *cfcomponent.Config) (yagnats.ApceraWrapperNATSClient, error) {
+			fakeClientProvider := func(*gosteno.Logger, *cfcomponent.Config) (yagnats.NATSConn, error) {
 				atomic.AddInt32(&fakeClientProviderCallCount, 1)
 				return fakeClient, errorProvider()
 			}
@@ -90,7 +91,7 @@ var _ = Describe("Collectorregistrar", func() {
 				})
 
 				It("disconnects the client", func() {
-					Eventually(fakeClient.Disconnected).Should(BeTrue())
+					Eventually(fakeClient.Closed).Should(BeTrue())
 				})
 			})
 		})
@@ -98,24 +99,24 @@ var _ = Describe("Collectorregistrar", func() {
 })
 
 type fakeClient struct {
-	*fakeyagnats.FakeApceraWrapper
-	disconnected bool
+	*fakeyagnats.FakeNATSConn
+	closed bool
 }
 
 func newFakeClient() *fakeClient {
 	return &fakeClient{
-		FakeApceraWrapper: fakeyagnats.NewApceraClientWrapper(),
+		FakeNATSConn: fakeyagnats.Connect(),
 	}
 }
 
-func (f *fakeClient) Disconnect() {
+func (f *fakeClient) Close() {
 	f.Lock()
 	defer f.Unlock()
-	f.disconnected = true
+	f.closed = true
 }
 
-func (f *fakeClient) Disconnected() bool {
+func (f *fakeClient) Closed() bool {
 	f.Lock()
 	defer f.Unlock()
-	return f.disconnected
+	return f.closed
 }
