@@ -12,36 +12,34 @@ import (
 
 type ClientProvider func(*gosteno.Logger, *cfcomponent.Config) (yagnats.NATSConn, error)
 
-type CollectorRegistrar interface {
-	Run(stopChan <-chan struct{})
-}
-
-type collectorRegistrar struct {
+type CollectorRegistrar struct {
 	clientProvider ClientProvider
 	interval       time.Duration
 	logger         *gosteno.Logger
 	cfc            cfcomponent.Component
 	client         yagnats.NATSConn
 	config         *cfcomponent.Config
+	stopChan       chan struct{}
 }
 
-func NewCollectorRegistrar(clientProvider ClientProvider, cfc cfcomponent.Component, interval time.Duration, config *cfcomponent.Config) CollectorRegistrar {
-	return &collectorRegistrar{
+func NewCollectorRegistrar(clientProvider ClientProvider, cfc cfcomponent.Component, interval time.Duration, config *cfcomponent.Config) *CollectorRegistrar {
+	return &CollectorRegistrar{
 		clientProvider: clientProvider,
 		logger:         cfc.Logger,
 		cfc:            cfc,
 		interval:       interval,
 		config:         config,
+		stopChan:       make(chan struct{}),
 	}
 }
 
-func (registrar *collectorRegistrar) Run(stopChan <-chan struct{}) {
+func (registrar *CollectorRegistrar) Run() {
 	ticker := time.NewTicker(registrar.interval)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-stopChan:
+		case <-registrar.stopChan:
 			return
 		case <-ticker.C:
 			err := registrar.announceMessage()
@@ -56,7 +54,11 @@ func (registrar *collectorRegistrar) Run(stopChan <-chan struct{}) {
 	}
 }
 
-func (registrar *collectorRegistrar) announceMessage() error {
+func (registrar *CollectorRegistrar) Stop() {
+	close(registrar.stopChan)
+}
+
+func (registrar *CollectorRegistrar) announceMessage() error {
 	if registrar.client == nil {
 		registrar.logger.Debugf("creating NATS client")
 

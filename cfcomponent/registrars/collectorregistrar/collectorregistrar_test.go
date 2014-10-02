@@ -22,8 +22,7 @@ var _ = Describe("Collectorregistrar", func() {
 		var (
 			fakeClient                  *fakeClient
 			component                   cfcomponent.Component
-			registrar                   collectorregistrar.CollectorRegistrar
-			stopChan                    chan struct{}
+			registrar                   *collectorregistrar.CollectorRegistrar
 			doneChan                    chan struct{}
 			errorProvider               func() error
 			fakeClientProviderCallCount int32
@@ -42,17 +41,16 @@ var _ = Describe("Collectorregistrar", func() {
 				return fakeClient, errorProvider()
 			}
 			registrar = collectorregistrar.NewCollectorRegistrar(fakeClientProvider, component, 10*time.Millisecond, nil)
-			stopChan = make(chan struct{})
 			doneChan = make(chan struct{})
 
 			go func() {
 				defer close(doneChan)
-				registrar.Run(stopChan)
+				registrar.Run()
 			}()
 		})
 
 		AfterEach(func() {
-			close(stopChan)
+			registrar.Stop()
 			Eventually(doneChan).Should(BeClosed())
 		})
 
