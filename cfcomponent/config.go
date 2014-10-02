@@ -9,15 +9,16 @@ import (
 )
 
 type Config struct {
-	Syslog     string
-	VarzPort   uint32
-	VarzUser   string
-	VarzPass   string
-	NatsHosts  []string
-	NatsPort   int
-	NatsUser   string
-	NatsPass   string
-	MbusClient yagnats.NATSConn
+	Syslog                                 string
+	VarzPort                               uint32
+	VarzUser                               string
+	VarzPass                               string
+	NatsHosts                              []string
+	NatsPort                               int
+	NatsUser                               string
+	NatsPass                               string
+	MbusClient                             yagnats.NATSConn
+	CollectorRegistrarIntervalMilliseconds int
 }
 
 var DefaultYagnatsClientProvider = func(logger *gosteno.Logger, c *Config) (natsClient yagnats.NATSConn, err error) {
