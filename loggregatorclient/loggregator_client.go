@@ -1,7 +1,6 @@
 package loggregatorclient
 
 import (
-	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/generic_logger"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
@@ -45,25 +44,22 @@ func NewLoggregatorClient(loggregatorAddress string, logger generic_logger.Gener
 
 	go func() {
 		for dataToSend := range loggregatorClient.sendChannel {
-			metrics.SendValue("currentBufferCount", float64(len(loggregatorClient.sendChannel)), "Msg")
-
-			if len(dataToSend) > 0 {
-				writeCount, err := connection.WriteTo(dataToSend, la)
-				if err != nil {
-					logger.Errorf("Writing to loggregator %s failed %s", loggregatorAddress, err)
-					continue
-				}
-				logger.Debugf("Wrote %d bytes to %s", writeCount, loggregatorAddress)
-
-				atomic.AddUint64(&loggregatorClient.sentMessageCount, 1)
-				atomic.AddUint64(&loggregatorClient.sentByteCount, uint64(writeCount))
-
-				metrics.IncrementCounter("sentMessageCount")
-				metrics.AddToCounter("sentByteCount", uint64(writeCount))
-			} else {
+			if len(dataToSend) == 0 {
 				logger.Debugf("Skipped writing of 0 byte message to %s", loggregatorAddress)
+				continue
 			}
+
+			writeCount, err := connection.WriteTo(dataToSend, la)
+			if err != nil {
+				logger.Errorf("Writing to loggregator %s failed %s", loggregatorAddress, err)
+				continue
+			}
+			logger.Debugf("Wrote %d bytes to %s", writeCount, loggregatorAddress)
+
+			atomic.AddUint64(&loggregatorClient.sentMessageCount, 1)
+			atomic.AddUint64(&loggregatorClient.sentByteCount, uint64(writeCount))
 		}
+
 		close(loggregatorClient.doneChannel)
 	}()
 
@@ -80,10 +76,7 @@ func (loggregatorClient *udpLoggregatorClient) Send(data []byte) {
 	atomic.AddUint64(&loggregatorClient.receivedMessageCount, 1)
 	atomic.AddUint64(&loggregatorClient.receivedByteCount, uint64(len(data)))
 
-	metrics.IncrementCounter("receivedMessageCount")
-	metrics.AddToCounter("receivedByteCount", uint64(len(data)))
 	loggregatorClient.sendChannel <- data
-	metrics.SendValue("currentBufferCount", float64(len(loggregatorClient.sendChannel)), "Msg")
 }
 
 func (loggregatorClient *udpLoggregatorClient) metrics() []instrumentation.Metric {

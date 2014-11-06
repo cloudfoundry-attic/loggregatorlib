@@ -1,27 +1,21 @@
 package loggregatorclient_test
 
 import (
-	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"net"
 
-	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("loggregatorclient", func() {
 	var (
-		fakeMetricSender  *fake.FakeMetricSender
 		loggregatorClient loggregatorclient.LoggregatorClient
 		udpListener       *net.UDPConn
 	)
 
 	BeforeEach(func() {
-		fakeMetricSender = fake.NewFakeMetricSender()
-		metrics.Initialize(fakeMetricSender)
-
 		loggregatorClient = loggregatorclient.NewLoggregatorClient("localhost:9875", gosteno.NewLogger("TestLogger"), 0)
 
 		udpAddr, _ := net.ResolveUDPAddr("udp", "localhost:9875")
@@ -78,14 +72,6 @@ var _ = Describe("loggregatorclient", func() {
 					Fail("Got an invalid metric name: " + metric.Name)
 				}
 			}
-		})
-
-		It("sends metrics using dropsonde", func() {
-			Expect(fakeMetricSender.GetValue("currentBufferCount")).To(Equal(fake.Metric{Value: 0, Unit: "Msg"}))
-			Expect(fakeMetricSender.GetCounter("sentMessageCount")).To(BeEquivalentTo(1))
-			Expect(fakeMetricSender.GetCounter("sentByteCount")).To(BeEquivalentTo(21))
-			Expect(fakeMetricSender.GetCounter("receivedMessageCount")).To(BeEquivalentTo(1))
-			Expect(fakeMetricSender.GetCounter("receivedByteCount")).To(BeEquivalentTo(21))
 		})
 	})
 
