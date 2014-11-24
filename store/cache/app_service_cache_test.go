@@ -30,8 +30,8 @@ var _ = Describe("AppServiceCache", func() {
 			appServices := appServiceCache.Get(app1Service1.AppId)
 
 			Expect(len(appServices)).To(Equal(2))
-			Expect(appServices[0]).To(Equal(app1Service1))
-			Expect(appServices[1]).To(Equal(app1Service2))
+			Expect(appServices).To(ContainElement(app1Service1))
+			Expect(appServices).To(ContainElement(app1Service2))
 		})
 
 		It("returns an empty slice of AppServices for an unknown AppId", func() {
@@ -89,8 +89,8 @@ var _ = Describe("AppServiceCache", func() {
 		It("returns the removed AppServices", func() {
 			appServices := appServiceCache.RemoveApp(app1Service1.AppId)
 			Expect(len(appServices)).To(Equal(2))
-			Expect(appServices[0]).To(Equal(app1Service1))
-			Expect(appServices[1]).To(Equal(app1Service2))
+			Expect(appServices).To(ContainElement(app1Service1))
+			Expect(appServices).To(ContainElement(app1Service2))
 		})
 	})
 
