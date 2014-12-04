@@ -8,7 +8,7 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/auth"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/localip"
+	"github.com/pivotal-golang/localip"
 	"net/http"
 )
 
@@ -19,7 +19,7 @@ type Component struct {
 	Type              string //Used by the collector to find data processing class
 	Index             uint
 	UUID              string
-	StatusPort        uint32
+	StatusPort        uint16
 	StatusCredentials []string
 	Instrumentables   []instrumentation.Instrumentable
 }
@@ -29,7 +29,7 @@ const (
 	password
 )
 
-func NewComponent(logger *gosteno.Logger, componentType string, index uint, heathMonitor HealthMonitor, statusPort uint32, statusCreds []string, instrumentables []instrumentation.Instrumentable) (Component, error) {
+func NewComponent(logger *gosteno.Logger, componentType string, index uint, heathMonitor HealthMonitor, statusPort uint16, statusCreds []string, instrumentables []instrumentation.Instrumentable) (Component, error) {
 	ip, err := localip.LocalIP()
 	if err != nil {
 		return Component{}, err

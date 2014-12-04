@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	Syslog                                 string
-	VarzPort                               uint32
+	VarzPort                               uint16
 	VarzUser                               string
 	VarzPass                               string
 	NatsHosts                              []string

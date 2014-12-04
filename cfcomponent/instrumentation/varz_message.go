@@ -1,7 +1,7 @@
 package instrumentation
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/localip"
+	"github.com/pivotal-golang/localip"
 	"runtime"
 )
 
