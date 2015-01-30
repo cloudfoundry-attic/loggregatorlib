@@ -109,7 +109,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 			go watcher.Run()
 			drainOutgoingChannel(outAddChan, 3)
 			close(done)
-		})
+		}, 5)
 
 		It("does not send updates when the data has already been processed", func(done Done) {
 			adapter.Create(buildNode(app1Service1))
