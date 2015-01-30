@@ -4,11 +4,13 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/loggregatorlib/server/handlers"
 	"github.com/gorilla/websocket"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("WebsocketHandler", func() {
@@ -116,6 +118,14 @@ var _ = Describe("WebsocketHandler", func() {
 
 		Consistently(handlerDone, 200*time.Millisecond).ShouldNot(BeClosed())
 		close(messagesChan)
+	})
+
+	It("should send a closing message", func() {
+		ws, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
+		Expect(err).NotTo(HaveOccurred())
+		close(messagesChan)
+		_, _, err = ws.ReadMessage()
+		Expect(err).To(Equal(io.EOF))
 	})
 
 })

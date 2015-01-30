@@ -29,7 +29,7 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer ws.Close()
-	defer ws.WriteControl(websocket.CloseMessage, []byte{}, time.Time{})
+	defer ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Time{})
 	keepAliveExpired := make(chan struct{})
 
 	// TODO: remove this loop (but keep ws.ReadMessage()) once we retire support in the cli for old style keep alives
