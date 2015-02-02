@@ -4,8 +4,8 @@ notifications:
   - cf-lamb@pivotallabs.com
 
 before_install:
-- '[ "${TRAVIS_GO_VERSION}" = "1.3" ] && go get code.google.com/p/go.tools/cmd/cover code.google.com/p/go.tools/cmd/vet'
-- '[ "${TRAVIS_GO_VERSION}" != "1.3" ] && go get golang.org/x/tools/cmd/cover golang.org/x/tools/cmd/vet'
+- '[ "${TRAVIS_GO_VERSION}" != "1.3" ] || go get code.google.com/p/go.tools/cmd/cover code.google.com/p/go.tools/cmd/vet'
+- '[ "${TRAVIS_GO_VERSION}" = "1.3" ] || go get golang.org/x/tools/cmd/cover golang.org/x/tools/cmd/vet'
 - go get github.com/mattn/goveralls
 - go get github.com/onsi/ginkgo/ginkgo
 
