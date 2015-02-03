@@ -1,10 +1,10 @@
 package appid
 
 import (
-	"code.google.com/p/gogoprotobuf/proto"
 	"errors"
 	"fmt"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
+	"github.com/gogo/protobuf/proto"
 	"net/url"
 )
 
