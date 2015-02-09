@@ -1,10 +1,10 @@
 package emitter_test
 
 import (
-	"code.google.com/p/gogoprotobuf/proto"
 	. "github.com/cloudfoundry/loggregatorlib/emitter"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
+	"github.com/gogo/protobuf/proto"
 	"strings"
 
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient/fake"
