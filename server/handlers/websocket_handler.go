@@ -20,23 +20,27 @@ func NewWebsocketHandler(m <-chan []byte, keepAlive time.Duration, logger *goste
 
 func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	h.logger.Debugf("websocket handler: ServeHTTP entered with request %v", r)
-	defer h.logger.Debugf("websocket handler: ServeHTTP exited")
 
-	ws, err := websocket.Upgrade(rw, r, nil, 0, 0)
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(*http.Request) bool { return true },
+	}
+	ws, err := upgrader.Upgrade(rw, r, nil)
+
 	if err != nil {
-		http.Error(rw, "Not a websocket handshake", http.StatusBadRequest)
 		h.logger.Debugf("websocket handler: Not a websocket handshake: %s", err.Error())
 		return
 	}
 	defer ws.Close()
 	defer ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Time{})
 	keepAliveExpired := make(chan struct{})
+	clientWentAway := make(chan struct{})
 
 	// TODO: remove this loop (but keep ws.ReadMessage()) once we retire support in the cli for old style keep alives
 	go func() {
 		for {
 			_, _, err := ws.ReadMessage()
 			if err != nil {
+				close(clientWentAway)
 				return
 			}
 		}
@@ -50,6 +54,8 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
+		case <-clientWentAway:
+			return
 		case <-keepAliveExpired:
 			return
 		case message, ok := <-h.messages:

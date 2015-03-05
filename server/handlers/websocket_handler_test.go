@@ -69,6 +69,7 @@ var _ = Describe("WebsocketHandler", func() {
 	It("should stop when the client goes away", func() {
 		ws, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
 		Expect(err).NotTo(HaveOccurred())
+
 		ws.Close()
 		go func() {
 			handlerDone, messagesChan := handlerDone, messagesChan
@@ -80,6 +81,16 @@ var _ = Describe("WebsocketHandler", func() {
 				}
 			}
 		}()
+
+		Eventually(handlerDone).Should(BeClosed())
+	})
+
+	It("should stop when the client goes away, even if no messages come", func() {
+		ws, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		//		ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Time{})
+		ws.Close()
 
 		Eventually(handlerDone).Should(BeClosed())
 	})
