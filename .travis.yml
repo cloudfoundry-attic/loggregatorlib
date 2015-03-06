@@ -18,7 +18,7 @@ install:
 
 before_script:
 - pushd $HOME/gopath/src/github.com/coreos/etcd && git checkout v0.4.6 && ./build && go install && popd
-- pushd $HOHE/gopath/src/github.com/coreos/go-etcd && git checkout v0.4.6 && popd
+- pushd $HOME/gopath/src/github.com/coreos/go-etcd && git checkout v0.4.6 && popd
 - pushd $HOME/gopath/src/github.com/cloudfoundry/storeadapter && git checkout dff7a18fad3c03aae624a5ae0bce53d142d72971 && popd
 
 script:
