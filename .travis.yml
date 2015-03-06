@@ -20,7 +20,7 @@ before_script:
 - wget https://github.com/coreos/etcd/archive/v0.4.6.tar.gz -O /tmp/etcd-0.4.6.tar.gz
 - mkdir -p $HOME/gopath/src/github.com/coreos
 - echo "Installing etcd-0.4.6" && pushd /tmp && tar -xzf etcd-0.4.6.tar.gz && mv etcd-0.4.6 $HOME/gopath/src/github.com/coreos/etcd && cd $HOME/gopath/src/github.com/coreos/etcd && ./build && go install && popd
-- echo "Backing cloudfoundry/storeadapter to last commit that works with etcd-0.4.6" && pushd $HOME/gopath/src/github.com/cloudfoundry/storeadapter && git checkout 2ecf2cc474dc8b97cc13051082f88580bbcc8e71 && popd
+- echo "Backing cloudfoundry/storeadapter to last commit that works with etcd-0.4.6" && pushd $HOME/gopath/src/github.com/cloudfoundry/storeadapter && git checkout dff7a18fad3c03aae624a5ae0bce53d142d72971 && popd
 
 script:
 - go vet ./...
