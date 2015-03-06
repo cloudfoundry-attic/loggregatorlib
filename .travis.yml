@@ -17,11 +17,9 @@ install:
 - go get -d -v -t ./...
 
 before_script:
-- wget https://github.com/coreos/etcd/archive/v0.4.6.tar.gz -O /tmp/etcd-0.4.6.tar.gz
-- mkdir -p $HOME/gopath/src/github.com/coreos
-- echo "Installing etcd-0.4.6" && pushd /tmp && tar -xzf etcd-0.4.6.tar.gz && mv etcd-0.4.6 $HOME/gopath/src/github.com/coreos/etcd && cd $HOME/gopath/src/github.com/coreos/etcd && ./build && go install && popd
-- echo "Checking out go-etcd v0.4.6" && pushd $HOME/gopath/src/github.com/coreos/go-etcd && git checkout v0.4.6 && popd
-- echo "Backing cloudfoundry/storeadapter to last commit that works with etcd-0.4.6" && pushd $HOME/gopath/src/github.com/cloudfoundry/storeadapter && git checkout dff7a18fad3c03aae624a5ae0bce53d142d72971 && popd
+- pushd $GOPATH/src/github.com/coreos/etcd && git checkout v0.4.6 && ./build && go install && popd
+- pushd $GOPATH/src/github.com/coreos/go-etcd && git checkout v0.4.6 && popd
+- pushd $GOPATH/src/github.com/cloudfoundry/storeadapter && git checkout dff7a18fad3c03aae624a5ae0bce53d142d72971 && popd
 
 script:
 - go vet ./...
