@@ -15,5 +15,5 @@ func MetricValue(instrumentable instrumentation.Instrumentable, name string) int
 func EventuallyExpectMetric(instrumentable instrumentation.Instrumentable, name string, value uint64) {
 	Eventually(func() interface{} {
 		return MetricValue(instrumentable, name)
-	}).Should(Equal(value))
+	}).Should(BeNumerically("==", value))
 }
