@@ -56,6 +56,12 @@ func TestStatusCredentialsDefault(t *testing.T) {
 	assert.NotEmpty(t, credentials[1])
 }
 
+func TestGUID(t *testing.T) {
+	component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, []string{"", ""}, nil)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, component.UUID)
+}
+
 func TestGoodHealthzEndpoint(t *testing.T) {
 	component := &Component{
 		Logger:            loggertesthelper.Logger(),
