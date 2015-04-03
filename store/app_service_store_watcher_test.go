@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"path"
 	"time"
+	"sync"
 
 	"github.com/cloudfoundry/loggregatorlib/appservice"
 )
@@ -20,6 +21,10 @@ const (
 
 var _ = Describe("AppServiceStoreWatcher", func() {
 	var watcher *AppServiceStoreWatcher
+	var watcherRunComplete sync.WaitGroup
+
+	var runWatcher func()
+
 	var adapter storeadapter.StoreAdapter
 	var outAddChan <-chan appservice.AppService
 	var outRemoveChan <-chan appservice.AppService
@@ -48,17 +53,27 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 
 		c := cache.NewAppServiceCache()
 		watcher, outAddChan, outRemoveChan = NewAppServiceStoreWatcher(adapter, c)
+		watcherRunComplete = sync.WaitGroup{}
+
+		runWatcher = func() {
+			watcherRunComplete.Add(1)
+			go func() {
+				watcher.Run()
+				watcherRunComplete.Done()
+			}()
+		}
 	})
 
-	AfterEach(func() {
-		err := adapter.Disconnect()
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(outAddChan).Should(BeClosed())
+	AfterEach(func(done Done) {
+		Expect(adapter.Disconnect()).To(Succeed())
+		watcherRunComplete.Wait()
+		close(done)
 	})
 
 	Describe("Shutdown", func() {
 		It("should close the outgoing channels", func() {
-			go watcher.Run()
+			runWatcher()
+
 			time.Sleep(500 * time.Millisecond)
 			adapter.Disconnect()
 
@@ -70,7 +85,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 	Describe("Loading watcher state on startup", func() {
 		Context("when the store is empty", func() {
 			It("should not send anything on the output channels", func() {
-				go watcher.Run()
+				runWatcher()
 
 				Consistently(outAddChan).Should(BeEmpty())
 				Consistently(outRemoveChan).Should(BeEmpty())
@@ -85,7 +100,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 			})
 
 			It("should send all the AppServices on the output add channel", func(done Done) {
-				go watcher.Run()
+				runWatcher()
 
 				appServices := drainOutgoingChannel(outAddChan, 3)
 
@@ -106,7 +121,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 			adapter.Create(buildNode(app1Service2))
 			adapter.Create(buildNode(app2Service1))
 
-			go watcher.Run()
+			runWatcher()
 			drainOutgoingChannel(outAddChan, 3)
 			close(done)
 		}, 5)

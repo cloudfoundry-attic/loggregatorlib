@@ -70,8 +70,8 @@ func (w *AppServiceStoreWatcher) Run() {
 	InnerLoop:
 		for {
 			select {
-			case err := <-errChan:
-				if err == nil {
+			case err, ok := <-errChan:
+				if !ok {
 					return
 				}
 				cfcomponent.Logger.Errorf("AppStoreWatcher: Got error while waiting for ETCD events: %s", err.Error())
