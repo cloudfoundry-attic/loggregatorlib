@@ -1,16 +1,18 @@
 package store_test
 
 import (
+	"path"
+	"sync"
+	"time"
+
 	. "github.com/cloudfoundry/loggregatorlib/store"
 	"github.com/cloudfoundry/loggregatorlib/store/cache"
 	"github.com/cloudfoundry/storeadapter"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"path"
-	"time"
-	"sync"
 
 	"github.com/cloudfoundry/loggregatorlib/appservice"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 const (

@@ -1,8 +1,9 @@
 package cache
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/appservice"
 	"sync"
+
+	"github.com/cloudfoundry/loggregatorlib/appservice"
 )
 
 type AppServiceCache interface {

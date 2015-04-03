@@ -4,18 +4,19 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudfoundry/loggregatorlib/appservice"
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
-	"github.com/cloudfoundry/storeadapter"
-	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
-	"github.com/onsi/ginkgo/config"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path"
 	"testing"
 	"time"
+
+	"github.com/cloudfoundry/loggregatorlib/appservice"
+	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
+	"github.com/cloudfoundry/storeadapter"
+	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
+	"github.com/onsi/ginkgo/config"
 )
 
 var etcdRunner *etcdstorerunner.ETCDClusterRunner

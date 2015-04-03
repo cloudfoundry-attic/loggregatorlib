@@ -1,8 +1,9 @@
 package store
 
 import (
-	"github.com/cloudfoundry/storeadapter"
 	"path"
+
+	"github.com/cloudfoundry/storeadapter"
 
 	"github.com/cloudfoundry/loggregatorlib/appservice"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
