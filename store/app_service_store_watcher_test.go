@@ -55,7 +55,6 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 
 		c := cache.NewAppServiceCache()
 		watcher, outAddChan, outRemoveChan = NewAppServiceStoreWatcher(adapter, c)
-		watcherRunComplete = sync.WaitGroup{}
 
 		runWatcher = func() {
 			watcherRunComplete.Add(1)
