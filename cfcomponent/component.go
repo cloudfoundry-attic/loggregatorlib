@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/auth"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/localip"
 	"net/http"
 )
@@ -42,6 +43,11 @@ func NewComponent(logger *gosteno.Logger, componentType string, index uint, heat
 		}
 	}
 
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		return Component{}, err
+	}
+
 	if len(statusCreds) == 0 || statusCreds[username] == "" || statusCreds[password] == "" {
 		randUser := make([]byte, 42)
 		randPass := make([]byte, 42)
@@ -59,6 +65,7 @@ func NewComponent(logger *gosteno.Logger, componentType string, index uint, heat
 		IpAddress:         ip,
 		Type:              componentType,
 		Index:             index,
+		UUID:              uuid.String(),
 		HealthMonitor:     heathMonitor,
 		StatusPort:        statusPort,
 		StatusCredentials: statusCreds,
