@@ -24,6 +24,7 @@ type Component struct {
 	StatusPort        uint16
 	StatusCredentials []string
 	Instrumentables   []instrumentation.Instrumentable
+	JobName           string
 }
 
 const (
@@ -31,7 +32,7 @@ const (
 	password
 )
 
-func NewComponent(logger *gosteno.Logger, componentType string, index uint, heathMonitor HealthMonitor, statusPort uint16, statusCreds []string, instrumentables []instrumentation.Instrumentable) (Component, error) {
+func NewComponent(logger *gosteno.Logger, componentType string, index uint, heathMonitor HealthMonitor, statusPort uint16, statusCreds []string, instrumentables []instrumentation.Instrumentable, optionalJobName ...string) (Component, error) {
 	ip, err := localip.LocalIP()
 	if err != nil {
 		return Component{}, err
@@ -61,6 +62,11 @@ func NewComponent(logger *gosteno.Logger, componentType string, index uint, heat
 		statusCreds = []string{user, pass}
 	}
 
+	var jobName string
+	if len(optionalJobName) > 0 {
+		jobName = optionalJobName[0]
+	}
+
 	return Component{
 		Logger:            logger,
 		IpAddress:         ip,
@@ -71,6 +77,7 @@ func NewComponent(logger *gosteno.Logger, componentType string, index uint, heat
 		StatusPort:        statusPort,
 		StatusCredentials: statusCreds,
 		Instrumentables:   instrumentables,
+		JobName:           jobName,
 	}, nil
 }
 
