@@ -12,6 +12,7 @@ const DiscoverComponentMessageSubject = "vcap.component.discover"
 type AnnounceComponentMessage struct {
 	Type        string   `json:"type"`
 	Index       uint     `json:"index"`
+	JobName     string   `json:"job_name,omitempty"`
 	Host        string   `json:"host"`
 	UUID        string   `json:"uuid"`
 	Credentials []string `json:"credentials"`
@@ -21,6 +22,7 @@ func NewAnnounceComponentMessage(cfc cfcomponent.Component) (message *AnnounceCo
 	message = &AnnounceComponentMessage{
 		Type:        cfc.Type,
 		Index:       cfc.Index,
+		JobName:     cfc.JobName,
 		Host:        fmt.Sprintf("%s:%d", cfc.IpAddress, cfc.StatusPort),
 		UUID:        fmt.Sprintf("%d-%s", cfc.Index, cfc.UUID),
 		Credentials: cfc.StatusCredentials,

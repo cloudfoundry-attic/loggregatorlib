@@ -53,6 +53,7 @@ func createYagnatsMessage(t *testing.T, subject string) ([]byte, *nats.Msg) {
 	expected := &AnnounceComponentMessage{
 		Type:        "Loggregator Server",
 		Index:       0,
+		JobName:     "jobname",
 		Host:        "1.2.3.4:5678",
 		UUID:        "0-abc123",
 		Credentials: []string{"user", "pass"},
@@ -75,6 +76,7 @@ func getTestCFComponent() cfcomponent.Component {
 		IpAddress:         "1.2.3.4",
 		Type:              "Loggregator Server",
 		Index:             0,
+		JobName:           "jobname",
 		StatusPort:        5678,
 		StatusCredentials: []string{"user", "pass"},
 		UUID:              "abc123",
