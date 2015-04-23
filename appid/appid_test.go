@@ -1,10 +1,11 @@
 package appid
 
 import (
-	testhelpers "github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
-	"github.com/stretchr/testify/assert"
 	"net/url"
 	"testing"
+
+	testhelpers "github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFromUrl(t *testing.T) {

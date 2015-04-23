@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"github.com/cloudfoundry/gosteno"
 	"mime/multipart"
 	"net/http"
+
+	"github.com/cloudfoundry/gosteno"
 )
 
 type httpHandler struct {

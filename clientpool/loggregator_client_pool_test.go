@@ -1,13 +1,13 @@
 package clientpool_test
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/clientpool"
-
 	"fmt"
-	steno "github.com/cloudfoundry/gosteno"
-	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"math/rand"
 	"time"
+
+	steno "github.com/cloudfoundry/gosteno"
+	"github.com/cloudfoundry/loggregatorlib/clientpool"
+	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

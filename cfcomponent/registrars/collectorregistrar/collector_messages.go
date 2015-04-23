@@ -2,6 +2,7 @@ package collectorregistrar
 
 import (
 	"fmt"
+
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 )
 

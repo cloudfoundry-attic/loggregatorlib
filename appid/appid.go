@@ -3,9 +3,10 @@ package appid
 import (
 	"errors"
 	"fmt"
+	"net/url"
+
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/gogo/protobuf/proto"
-	"net/url"
 )
 
 func FromUrl(u *url.URL) string {

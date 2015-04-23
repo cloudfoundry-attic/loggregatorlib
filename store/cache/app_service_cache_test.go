@@ -1,11 +1,11 @@
 package cache_test
 
 import (
+	"github.com/cloudfoundry/loggregatorlib/appservice"
 	. "github.com/cloudfoundry/loggregatorlib/store/cache"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/cloudfoundry/loggregatorlib/appservice"
 )
 
 var _ = Describe("AppServiceCache", func() {

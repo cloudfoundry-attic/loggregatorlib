@@ -5,12 +5,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/auth"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/localip"
-	"net/http"
 )
 
 type Component struct {

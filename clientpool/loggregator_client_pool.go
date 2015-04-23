@@ -3,10 +3,11 @@ package clientpool
 import (
 	"errors"
 	"fmt"
-	"github.com/cloudfoundry/gosteno"
-	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"math/rand"
 	"sync"
+
+	"github.com/cloudfoundry/gosteno"
+	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 )
 
 var ErrorEmptyClientPool = errors.New("loggregator client pool is empty")

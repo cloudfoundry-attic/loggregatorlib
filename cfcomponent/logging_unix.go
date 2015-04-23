@@ -3,10 +3,11 @@
 package cfcomponent
 
 import (
-	"github.com/cloudfoundry/gosteno"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/cloudfoundry/gosteno"
 )
 
 func GetNewSyslogSink(namespace string) *gosteno.Syslog {

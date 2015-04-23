@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/server"
 	"github.com/gorilla/websocket"
-	"net/http"
-	"time"
 )
 
 type websocketHandler struct {

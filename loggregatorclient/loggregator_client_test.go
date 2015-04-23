@@ -1,9 +1,10 @@
 package loggregatorclient_test
 
 import (
+	"net"
+
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
-	"net"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

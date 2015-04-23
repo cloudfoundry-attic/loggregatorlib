@@ -1,10 +1,11 @@
 package cfcomponent
 
 import (
-	"github.com/cloudfoundry/gosteno"
 	"os"
 	"runtime/pprof"
 	"strings"
+
+	"github.com/cloudfoundry/gosteno"
 )
 
 var Logger *gosteno.Logger

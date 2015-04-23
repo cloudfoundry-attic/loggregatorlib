@@ -3,8 +3,9 @@
 package cfcomponent
 
 import (
-	"github.com/cloudfoundry/gosteno"
 	"os"
+
+	"github.com/cloudfoundry/gosteno"
 )
 
 func GetNewSyslogSink(namespace string) gosteno.Sink {

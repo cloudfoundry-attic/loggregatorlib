@@ -1,10 +1,11 @@
 package loggregatorclient
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/generic_logger"
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 	"net"
 	"sync/atomic"
+
+	"github.com/cloudfoundry/loggregatorlib/cfcomponent/generic_logger"
+	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 )
 
 const DefaultBufferSize = 4096

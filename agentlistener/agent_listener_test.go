@@ -2,11 +2,13 @@ package agentlistener_test
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/agentlistener"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"net"
 )
 
 var _ = Describe("AgentListener", func() {

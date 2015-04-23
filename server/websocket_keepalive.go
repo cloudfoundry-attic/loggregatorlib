@@ -1,8 +1,9 @@
 package server
 
 import (
-	"github.com/gorilla/websocket"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type KeepAlive struct {

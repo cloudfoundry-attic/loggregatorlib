@@ -1,14 +1,16 @@
 package server_test
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/server"
-	"github.com/gorilla/websocket"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
 	"time"
+
+	"github.com/cloudfoundry/loggregatorlib/server"
+	"github.com/gorilla/websocket"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("WebsocketKeepalive", func() {

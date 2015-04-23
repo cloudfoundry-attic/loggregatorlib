@@ -13,6 +13,7 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/yagnats"
 	"github.com/cloudfoundry/yagnats/fakeyagnats"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

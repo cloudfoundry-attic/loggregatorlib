@@ -1,10 +1,11 @@
 package loggertesthelper
 
 import (
-	"github.com/cloudfoundry/gosteno"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/cloudfoundry/gosteno"
 )
 
 var TestLoggerSink = new(TestStenoSink)

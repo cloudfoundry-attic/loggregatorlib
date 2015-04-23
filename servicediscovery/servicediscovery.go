@@ -1,10 +1,11 @@
 package servicediscovery
 
 import (
-	"github.com/cloudfoundry/gosteno"
-	"github.com/cloudfoundry/storeadapter"
 	"sync"
 	"time"
+
+	"github.com/cloudfoundry/gosteno"
+	"github.com/cloudfoundry/storeadapter"
 )
 
 type ServerAddressList interface {

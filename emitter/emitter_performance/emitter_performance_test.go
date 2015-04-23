@@ -1,11 +1,12 @@
 package emitter_performance
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/emitter"
-	"github.com/cloudfoundry/loggregatorlib/loggregatorclient/fake"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cloudfoundry/loggregatorlib/emitter"
+	"github.com/cloudfoundry/loggregatorlib/loggregatorclient/fake"
 )
 
 const (

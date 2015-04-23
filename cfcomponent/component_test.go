@@ -2,14 +2,15 @@ package cfcomponent
 
 import (
 	"encoding/json"
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
+	"github.com/stretchr/testify/assert"
 )
 
 type GoodHealthMonitor struct{}
