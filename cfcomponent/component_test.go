@@ -267,8 +267,8 @@ func TestVarzEndpoint(t *testing.T) {
 	assert.NotNil(t, actualMap["tags"])
 	assert.Equal(t, expected["contexts"], actualMap["contexts"])
 	assert.Equal(t, expected["name"], actualMap["name"])
-	assert.Equal(t, expected["numCPUS"], actualMap["numCPUS"])
-	assert.Equal(t, expected["numGoRoutines"], actualMap["numGoRoutines"])
+	assert.EqualValues(t, expected["numCPUS"], actualMap["numCPUS"])
+	assert.EqualValues(t, expected["numGoRoutines"], actualMap["numGoRoutines"])
 	assert.NotNil(t, actualMap["memoryStats"])
 	assert.NotEmpty(t, actualMap["memoryStats"])
 }
