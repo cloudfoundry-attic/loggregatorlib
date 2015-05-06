@@ -12,6 +12,7 @@ type ServerAddressList interface {
 	Run(updateInterval time.Duration)
 	Stop()
 	GetAddresses() []string
+	DiscoverAddresses()
 }
 
 type serverAddressList struct {
@@ -42,35 +43,39 @@ func (list *serverAddressList) Run(updateInterval time.Duration) {
 		case <-list.stopChan:
 			return
 		case <-ticker.C:
-			node, err := list.storeAdapter.ListRecursively(list.storeKeyPrefix)
-
-			if err == storeadapter.ErrorKeyNotFound {
-				list.logger.Debugf("ServerAddressList.Run: Unable to recursively find keys with prefix %s", list.storeKeyPrefix)
-				continue
-			}
-
-			if err == storeadapter.ErrorTimeout {
-				list.logger.Debug("ServerAddressList.Run: Timed out talking to store; will try again soon.")
-				continue
-			}
-
-			if err != nil {
-				panic(err) //FIXME: understand error modes and recovery cases better
-			}
-
-			leaves := leafNodes(node)
-
-			addresses := []string{}
-
-			for _, leaf := range leaves {
-				addresses = append(addresses, string(leaf.Value))
-			}
-
-			list.Lock()
-			list.addresses = addresses
-			list.Unlock()
+			list.DiscoverAddresses()
 		}
 	}
+}
+
+func (list *serverAddressList) DiscoverAddresses() {
+	node, err := list.storeAdapter.ListRecursively(list.storeKeyPrefix)
+
+	if err == storeadapter.ErrorKeyNotFound {
+		list.logger.Debugf("ServerAddressList.Run: Unable to recursively find keys with prefix %s", list.storeKeyPrefix)
+		return
+	}
+
+	if err == storeadapter.ErrorTimeout {
+		list.logger.Debug("ServerAddressList.Run: Timed out talking to store; will try again soon.")
+		return
+	}
+
+	if err != nil {
+		panic(err) //FIXME: understand error modes and recovery cases better
+	}
+
+	leaves := leafNodes(node)
+
+	addresses := []string{}
+
+	for _, leaf := range leaves {
+		addresses = append(addresses, string(leaf.Value))
+	}
+
+	list.Lock()
+	list.addresses = addresses
+	list.Unlock()
 }
 
 func (list *serverAddressList) Stop() {
