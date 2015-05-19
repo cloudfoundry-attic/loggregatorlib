@@ -21,20 +21,26 @@ type LoggregatorClientPool struct {
 	logger          *gosteno.Logger
 	loggregatorPort int
 	sync.RWMutex
-	serverAddressGetter AddressGetter
+	serverAddressGetterInZone   AddressGetter
+	serverAddressGetterAllZones AddressGetter
 }
 
-func NewLoggregatorClientPool(logger *gosteno.Logger, port int, getter AddressGetter) *LoggregatorClientPool {
+func NewLoggregatorClientPool(logger *gosteno.Logger, port int, getterInZone AddressGetter, getterAllZones AddressGetter) *LoggregatorClientPool {
 	return &LoggregatorClientPool{
-		loggregatorPort:     port,
-		clients:             make(map[string]*loggregatorclient.LoggregatorClient),
-		logger:              logger,
-		serverAddressGetter: getter,
+		loggregatorPort: port,
+		clients:         make(map[string]*loggregatorclient.LoggregatorClient),
+		logger:          logger,
+		serverAddressGetterInZone:   getterInZone,
+		serverAddressGetterAllZones: getterAllZones,
 	}
 }
 
 func (pool *LoggregatorClientPool) ListClients() []loggregatorclient.LoggregatorClient {
-	pool.syncWithAddressList(pool.serverAddressGetter.GetAddresses())
+	pool.syncWithAddressList(pool.serverAddressGetterInZone.GetAddresses())
+
+	if len(pool.clients) == 0 {
+		pool.syncWithAddressList(pool.serverAddressGetterAllZones.GetAddresses())
+	}
 
 	pool.RLock()
 	defer pool.RUnlock()
