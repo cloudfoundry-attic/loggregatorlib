@@ -71,17 +71,25 @@ func (pool *LoggregatorClientPool) syncWithAddressList(addresses []string) {
 	for _, address := range addresses {
 		clientIdentifier := fmt.Sprintf("%s:%d", address, pool.loggregatorPort)
 
-		if pool.hasServerFor(clientIdentifier) {
+		if pool.hasClientFor(clientIdentifier) {
 			newClients[clientIdentifier] = pool.clients[clientIdentifier]
 		} else {
 			client := loggregatorclient.NewLoggregatorClient(clientIdentifier, pool.logger, loggregatorclient.DefaultBufferSize)
 			newClients[clientIdentifier] = &client
 		}
 	}
+
+	for address, client := range pool.clients {
+		_, ok := newClients[address]
+		if !ok {
+			(*client).Stop()
+		}
+	}
+
 	pool.clients = newClients
 }
 
-func (pool *LoggregatorClientPool) hasServerFor(addr string) bool {
+func (pool *LoggregatorClientPool) hasClientFor(addr string) bool {
 	_, ok := pool.clients[addr]
 	return ok
 }

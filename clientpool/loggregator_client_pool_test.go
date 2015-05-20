@@ -3,6 +3,7 @@ package clientpool_test
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 
 	steno "github.com/cloudfoundry/gosteno"
@@ -68,6 +69,21 @@ var _ = Describe("LoggregatorClientPool", func() {
 			Expect(client1).To(Equal(client2))
 		})
 
+		It("stops old clients when address is removed", func() {
+			goroutineCount := runtime.NumGoroutine()
+
+			// ListClients will sync with the list
+			fakeGetterInZone.addresses = []string{"127.0.0.1", "127.0.0.2"}
+			pool.ListClients()
+
+			// Sync again with fewer addresses
+			fakeGetterInZone.addresses = []string{"127.0.0.1"}
+			pool.ListClients()
+
+			// Ensure that the goroutine from the abandoned client is stopped
+			newGoroutineCount := runtime.NumGoroutine()
+			Expect(newGoroutineCount).To(Equal(goroutineCount + 1))
+		})
 	})
 
 	Describe("RandomClient", func() {
