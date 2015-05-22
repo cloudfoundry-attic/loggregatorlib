@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 )
@@ -28,7 +29,14 @@ type agentListener struct {
 
 func NewAgentListener(host string, givenLogger *gosteno.Logger, name string) (AgentListener, <-chan []byte) {
 	byteChan := make(chan []byte, 1024)
-	return &agentListener{Logger: givenLogger, host: host, dataChannel: byteChan, contextName: name}, byteChan
+	listener := &agentListener{
+		Logger:      givenLogger,
+		host:        host,
+		dataChannel: byteChan,
+		contextName: name,
+	}
+
+	return listener, byteChan
 }
 
 func (agentListener *agentListener) Start() {
@@ -36,6 +44,7 @@ func (agentListener *agentListener) Start() {
 	if err != nil {
 		agentListener.Fatalf("Failed to listen on port. %s", err)
 	}
+
 	agentListener.Infof("Listening on port %s", agentListener.host)
 	agentListener.Lock()
 	agentListener.connection = connection
@@ -53,6 +62,9 @@ func (agentListener *agentListener) Start() {
 
 		readData := make([]byte, readCount) //pass on buffer in size only of read data
 		copy(readData, readBuffer[:readCount])
+
+		metrics.BatchIncrementCounter(agentListener.contextName + ".receivedMessageCount")
+		metrics.BatchAddCounter(agentListener.contextName+".receivedByteCount", uint64(readCount))
 
 		atomic.AddUint64(&agentListener.receivedMessageCount, 1)
 		atomic.AddUint64(&agentListener.receivedByteCount, uint64(readCount))
