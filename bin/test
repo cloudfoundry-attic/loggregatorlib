@@ -11,9 +11,6 @@ go fmt ./...
 echo "Go vetting..."
 go vet ./...
 
-echo "Go linting..."
-golint
-
 echo "Go test benchmarking..."
 go test -bench . -run=Benchmark -v ./...
 

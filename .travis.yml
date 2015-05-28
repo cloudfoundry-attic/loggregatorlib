@@ -25,9 +25,7 @@ before_script:
 - pushd $HOME/gopath/src/github.com/cloudfoundry/gunk && git checkout 58219e196529649233297d3f3003aa7e54ed2bd6 && popd
 
 script:
-- go vet ./...
-- go test -bench . -run=Benchmark -v ./...
-- PATH=$HOME/gopath/bin:$PATH ginkgo -r --race --randomizeAllSpecs --failOnPending --skipMeasurements --cover
+- PATH=$HOME/gopath/bin:$PATH bin/test
 
 go:
 - 1.4
