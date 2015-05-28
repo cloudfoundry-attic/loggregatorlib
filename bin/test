@@ -14,5 +14,8 @@ go vet ./...
 echo "Go linting..."
 golint
 
+echo "Go test benchmarking..."
+go test -bench . -run=Benchmark -v ./...
+
 echo "Recursive ginkgo... ${*:+(with parameter(s) }$*${*:+)}"
-ginkgo -r --race --randomizeAllSpecs --failOnPending -cover $*
+ginkgo -r --race --randomizeAllSpecs --failOnPending --skipMeasurements -cover $*
