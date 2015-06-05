@@ -3,74 +3,76 @@ package cfcomponent
 import (
 	"io/ioutil"
 	"os"
-	"testing"
 
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func TestReadingFromJsonFile(t *testing.T) {
-	file, err := ioutil.TempFile("", "config")
-	defer func() {
-		os.Remove(file.Name())
-	}()
-	assert.NoError(t, err)
-	_, err = file.Write([]byte(`{"VarzUser":"User"}`))
-	assert.NoError(t, err)
+var _ = Describe("Testing with Ginkgo", func() {
+	It("reading from json file", func() {
+		file, err := ioutil.TempFile("", "config")
+		defer func() {
+			os.Remove(file.Name())
+		}()
+		Expect(err).NotTo(HaveOccurred())
+		_, err = file.Write([]byte(`{"VarzUser":"User"}`))
+		Expect(err).NotTo(HaveOccurred())
 
-	err = file.Close()
-	assert.NoError(t, err)
+		err = file.Close()
+		Expect(err).NotTo(HaveOccurred())
 
-	config := &Config{}
-	err = ReadConfigInto(config, file.Name())
-	assert.NoError(t, err)
+		config := &Config{}
+		err = ReadConfigInto(config, file.Name())
+		Expect(err).NotTo(HaveOccurred())
 
-	assert.Equal(t, config.VarzUser, "User")
-}
+		Expect(config.VarzUser).To(Equal("User"))
+	})
+
+	It("reading my config from json file", func() {
+		file, err := ioutil.TempFile("", "config")
+		defer func() {
+			os.Remove(file.Name())
+		}()
+		Expect(err).NotTo(HaveOccurred())
+		_, err = file.Write([]byte(`{"VarzUser":"User", "CustomProperty":"CustomValue"}`))
+		Expect(err).NotTo(HaveOccurred())
+
+		err = file.Close()
+		Expect(err).NotTo(HaveOccurred())
+
+		config := &MyConfig{}
+		err = ReadConfigInto(config, file.Name())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(config.VarzUser).To(Equal("User"))
+		Expect(config.CustomProperty).To(Equal("CustomValue"))
+	})
+
+	It("returns error if file not found", func() {
+		config := &Config{}
+		err := ReadConfigInto(config, "/foo/config.json")
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("returns error if invalid json", func() {
+		file, err := ioutil.TempFile("", "config")
+		defer func() {
+			os.Remove(file.Name())
+		}()
+		Expect(err).NotTo(HaveOccurred())
+		_, err = file.Write([]byte(`NotJson`))
+		Expect(err).NotTo(HaveOccurred())
+
+		err = file.Close()
+		Expect(err).NotTo(HaveOccurred())
+
+		config := &Config{}
+		err = ReadConfigInto(config, file.Name())
+		Expect(err).To(HaveOccurred())
+	})
+})
 
 type MyConfig struct {
 	Config
 	CustomProperty string
-}
-
-func TestReadingMyConfigFromJsonFile(t *testing.T) {
-	file, err := ioutil.TempFile("", "config")
-	defer func() {
-		os.Remove(file.Name())
-	}()
-	assert.NoError(t, err)
-	_, err = file.Write([]byte(`{"VarzUser":"User", "CustomProperty":"CustomValue"}`))
-	assert.NoError(t, err)
-
-	err = file.Close()
-	assert.NoError(t, err)
-
-	config := &MyConfig{}
-	err = ReadConfigInto(config, file.Name())
-	assert.NoError(t, err)
-
-	assert.Equal(t, config.VarzUser, "User")
-	assert.Equal(t, config.CustomProperty, "CustomValue")
-}
-
-func TestReturnsErrorIfFileNotFound(t *testing.T) {
-	config := &Config{}
-	err := ReadConfigInto(config, "/foo/config.json")
-	assert.Error(t, err)
-}
-
-func TestReturnsErrorIfInvalidJson(t *testing.T) {
-	file, err := ioutil.TempFile("", "config")
-	defer func() {
-		os.Remove(file.Name())
-	}()
-	assert.NoError(t, err)
-	_, err = file.Write([]byte(`NotJson`))
-	assert.NoError(t, err)
-
-	err = file.Close()
-	assert.NoError(t, err)
-
-	config := &Config{}
-	err = ReadConfigInto(config, file.Name())
-	assert.Error(t, err)
 }

@@ -1,181 +1,158 @@
 package routerregistrar
 
 import (
-	"os"
-	"testing"
-	"time"
-
 	"github.com/apcera/nats"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/yagnats/fakeyagnats"
-	"github.com/stretchr/testify/assert"
+	"os"
+	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func TestGreetRouter(t *testing.T) {
-	routerReceivedChannel := make(chan *nats.Msg, 10)
-	resultChan := make(chan bool)
+var _ = Describe("Router Registrar", func() {
+	It("greets router", func() {
+		routerReceivedChannel := make(chan *nats.Msg, 10)
+		resultChan := make(chan bool)
 
-	mbus := fakeyagnats.Connect()
-	fakeRouter(mbus, routerReceivedChannel)
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+		mbus := fakeyagnats.Connect()
+		fakeRouter(mbus, routerReceivedChannel)
+		registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 
-	go func() {
-		err := registrar.greetRouter()
-		assert.NoError(t, err)
-	}()
+		go func() {
+			err := registrar.greetRouter()
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
-	go func() {
-		for {
-			registrar.lock.RLock()
-			if registrar.routerRegisterInterval == 42*time.Second {
-				resultChan <- true
+		go func() {
+			for {
+				registrar.lock.RLock()
+				if registrar.routerRegisterInterval == 42*time.Second {
+					resultChan <- true
+					registrar.lock.RUnlock()
+					break
+				}
 				registrar.lock.RUnlock()
-				break
+				time.Sleep(5 * time.Millisecond)
 			}
-			registrar.lock.RUnlock()
-			time.Sleep(5 * time.Millisecond)
-		}
-	}()
+		}()
 
-	select {
-	case <-resultChan:
-		assert.Equal(t, len(mbus.Subscriptions("router.greet")), 1)
-		assert.Equal(t, len(mbus.Subscriptions("router.register")), 1)
-	case <-time.After(2 * time.Second):
-		t.Error("Router did not receive a router.start in time!")
-	}
-}
+		Eventually(resultChan, 2).Should(Receive())
+		Expect(mbus.Subscriptions("router.greet")).To(HaveLen(1))
+		Expect(mbus.Subscriptions("router.register")).To(HaveLen(1))
+	})
 
-func TestDefaultIntervalIsSetWhenGreetRouterFails(t *testing.T) {
-	routerReceivedChannel := make(chan *nats.Msg)
-	resultChan := make(chan bool)
+	It("sets default interval when greet router fails", func() {
+		routerReceivedChannel := make(chan *nats.Msg)
+		resultChan := make(chan bool)
 
-	mbus := fakeyagnats.Connect()
-	fakeBrokenGreeterRouter(mbus, routerReceivedChannel)
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+		mbus := fakeyagnats.Connect()
+		fakeBrokenGreeterRouter(mbus, routerReceivedChannel)
+		registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 
-	go func() {
-		err := registrar.greetRouter()
-		assert.Error(t, err)
-	}()
+		go func() {
+			err := registrar.greetRouter()
+			Expect(err).To(HaveOccurred())
+		}()
 
-	go func() {
-		for {
-			registrar.lock.RLock()
-			if registrar.routerRegisterInterval == 20*time.Second {
-				resultChan <- true
+		go func() {
+			for {
+				registrar.lock.RLock()
+				if registrar.routerRegisterInterval == 20*time.Second {
+					resultChan <- true
+					registrar.lock.RUnlock()
+					break
+				}
 				registrar.lock.RUnlock()
-				break
+				time.Sleep(5 * time.Millisecond)
 			}
-			registrar.lock.RUnlock()
-			time.Sleep(5 * time.Millisecond)
-		}
-	}()
+		}()
 
-	select {
-	case <-resultChan:
-	case <-time.After(2 * time.Second):
-		t.Error("Default register interval was never set!")
-	}
-}
+		Eventually(resultChan, 2).Should(Receive())
+	})
 
-func TestDefaultIntervalIsSetWhenGreetWithoutRouter(t *testing.T) {
-	resultChan := make(chan bool)
+	It("sets default interval when greet without router", func() {
+		resultChan := make(chan bool)
 
-	mbus := fakeyagnats.Connect()
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+		mbus := fakeyagnats.Connect()
+		registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
 
-	go func() {
-		err := registrar.greetRouter()
-		assert.Error(t, err)
-	}()
+		go func() {
+			err := registrar.greetRouter()
+			Expect(err).To(HaveOccurred())
+		}()
 
-	go func() {
-		for {
-			registrar.lock.RLock()
-			if registrar.routerRegisterInterval == 20*time.Second {
-				resultChan <- true
+		go func() {
+			for {
+				registrar.lock.RLock()
+				if registrar.routerRegisterInterval == 20*time.Second {
+					resultChan <- true
+					registrar.lock.RUnlock()
+					break
+				}
 				registrar.lock.RUnlock()
-				break
+				time.Sleep(5 * time.Millisecond)
 			}
-			registrar.lock.RUnlock()
-			time.Sleep(5 * time.Millisecond)
-		}
-	}()
+		}()
 
-	select {
-	case <-resultChan:
-	case <-time.After(32 * time.Second):
-		t.Error("Default register interval was never set!")
-	}
-}
+		Eventually(resultChan, 32).Should(Receive())
+	})
 
-func TestKeepRegisteringWithRouter(t *testing.T) {
-	mbus := fakeyagnats.Connect()
-	os.Setenv("LOG_TO_STDOUT", "false")
-	routerReceivedChannel := make(chan *nats.Msg)
-	fakeRouter(mbus, routerReceivedChannel)
+	It("keeps registering with router", func() {
+		mbus := fakeyagnats.Connect()
+		os.Setenv("LOG_TO_STDOUT", "false")
+		routerReceivedChannel := make(chan *nats.Msg)
+		fakeRouter(mbus, routerReceivedChannel)
 
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
-	registrar.routerRegisterInterval = 50 * time.Millisecond
-	registrar.keepRegisteringWithRouter("13.12.14.15", 8083, []string{"foobar.vcap.me"})
+		registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+		registrar.routerRegisterInterval = 50 * time.Millisecond
+		registrar.keepRegisteringWithRouter("13.12.14.15", 8083, []string{"foobar.vcap.me"})
 
-	for i := 0; i < 3; i++ {
-		time.Sleep(55 * time.Millisecond)
-		select {
-		case msg := <-routerReceivedChannel:
-			assert.Equal(t, `registering:{"host":"13.12.14.15","port":8083,"uris":["foobar.vcap.me"]}`, string(msg.Data))
-		default:
-			t.Error("Router did not receive a router.register in time!")
-		}
-	}
-}
+		var message *nats.Msg
+		Eventually(routerReceivedChannel).Should(Receive(&message))
+		Expect(string(message.Data)).To(Equal(`registering:{"host":"13.12.14.15","port":8083,"uris":["foobar.vcap.me"]}`))
+	})
 
-func TestSubscribeToRouterStart(t *testing.T) {
-	mbus := fakeyagnats.Connect()
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
-	registrar.subscribeToRouterStart()
+	It("subscribes to router start", func() {
+		mbus := fakeyagnats.Connect()
+		registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+		registrar.subscribeToRouterStart()
 
-	err := mbus.Publish("router.start", []byte(messageFromRouter))
-	assert.NoError(t, err)
+		err := mbus.Publish("router.start", []byte(messageFromRouter))
+		Expect(err).NotTo(HaveOccurred())
 
-	resultChan := make(chan bool)
-	go func() {
-		for {
-			registrar.lock.RLock()
-			if registrar.routerRegisterInterval == 42*time.Second {
-				resultChan <- true
+		resultChan := make(chan bool)
+		go func() {
+			for {
+				registrar.lock.RLock()
+				if registrar.routerRegisterInterval == 42*time.Second {
+					resultChan <- true
+					registrar.lock.RUnlock()
+					break
+				}
 				registrar.lock.RUnlock()
-				break
+				time.Sleep(5 * time.Millisecond)
 			}
-			registrar.lock.RUnlock()
-			time.Sleep(5 * time.Millisecond)
-		}
-	}()
+		}()
 
-	select {
-	case <-resultChan:
-	case <-time.After(2 * time.Second):
-		t.Error("Router did not receive a router.start in time!")
-	}
-}
+		Eventually(resultChan, 2).Should(Receive())
+	})
 
-func TestUnregisterFromRouter(t *testing.T) {
-	mbus := fakeyagnats.Connect()
-	routerReceivedChannel := make(chan *nats.Msg, 10)
-	fakeRouter(mbus, routerReceivedChannel)
+	It("unregisters from router", func() {
+		mbus := fakeyagnats.Connect()
+		routerReceivedChannel := make(chan *nats.Msg, 10)
+		fakeRouter(mbus, routerReceivedChannel)
 
-	registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
-	registrar.UnregisterFromRouter("13.12.14.15", 8083, []string{"foobar.vcap.me"})
+		registrar := NewRouterRegistrar(mbus, loggertesthelper.Logger())
+		registrar.UnregisterFromRouter("13.12.14.15", 8083, []string{"foobar.vcap.me"})
 
-	select {
-	case msg := <-routerReceivedChannel:
 		host := "13.12.14.15"
-		assert.Equal(t, `unregistering:{"host":"`+host+`","port":8083,"uris":["foobar.vcap.me"]}`, string(msg.Data))
-	case <-time.After(2 * time.Second):
-		t.Error("Router did not receive a router.unregister in time!")
-	}
-}
+		var message *nats.Msg
+		Eventually(routerReceivedChannel, 2).Should(Receive(&message))
+		Expect(string(message.Data)).To(Equal(`unregistering:{"host":"` + host + `","port":8083,"uris":["foobar.vcap.me"]}`))
+	})
+})
 
 const messageFromRouter = `{
   							"id": "some-router-id",

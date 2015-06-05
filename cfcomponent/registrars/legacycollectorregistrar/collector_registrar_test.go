@@ -2,53 +2,56 @@ package legacycollectorregistrar
 
 import (
 	"encoding/json"
-	"testing"
 
 	"github.com/apcera/nats"
 	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/yagnats/fakeyagnats"
-	"github.com/stretchr/testify/assert"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func TestAnnounceComponent(t *testing.T) {
-	cfc := getTestCFComponent()
-	mbus := fakeyagnats.Connect()
+var _ = Describe("Legacy Collector Registrar", func() {
+	It("announce component", func() {
+		cfc := getTestCFComponent()
+		mbus := fakeyagnats.Connect()
 
-	called := make(chan *nats.Msg, 10)
-	mbus.Subscribe(AnnounceComponentMessageSubject, func(response *nats.Msg) {
-		called <- response
+		called := make(chan *nats.Msg, 10)
+		mbus.Subscribe(AnnounceComponentMessageSubject, func(response *nats.Msg) {
+			called <- response
+		})
+
+		registrar := NewCollectorRegistrar(mbus, loggertesthelper.Logger())
+		registrar.announceComponent(cfc)
+
+		expectedJson, _ := createYagnatsMessage(GinkgoT(), AnnounceComponentMessageSubject)
+
+		payloadBytes := (<-called).Data
+		Expect(payloadBytes).To(Equal(expectedJson))
 	})
 
-	registrar := NewCollectorRegistrar(mbus, loggertesthelper.Logger())
-	registrar.announceComponent(cfc)
+	It("subscribe to component discover", func() {
+		cfc := getTestCFComponent()
+		mbus := fakeyagnats.Connect()
 
-	expectedJson, _ := createYagnatsMessage(t, AnnounceComponentMessageSubject)
+		called := make(chan *nats.Msg, 10)
+		mbus.Subscribe(DiscoverComponentMessageSubject, func(response *nats.Msg) {
+			called <- response
+		})
 
-	payloadBytes := (<-called).Data
-	assert.Equal(t, expectedJson, payloadBytes)
-}
+		registrar := NewCollectorRegistrar(mbus, loggertesthelper.Logger())
+		registrar.subscribeToComponentDiscover(cfc)
 
-func TestSubscribeToComponentDiscover(t *testing.T) {
-	cfc := getTestCFComponent()
-	mbus := fakeyagnats.Connect()
+		expectedJson, _ := createYagnatsMessage(GinkgoT(), DiscoverComponentMessageSubject)
+		mbus.PublishRequest(DiscoverComponentMessageSubject, "unused-reply", expectedJson)
 
-	called := make(chan *nats.Msg, 10)
-	mbus.Subscribe(DiscoverComponentMessageSubject, func(response *nats.Msg) {
-		called <- response
+		payloadBytes := (<-called).Data
+		Expect(payloadBytes).To(Equal(expectedJson))
 	})
+})
 
-	registrar := NewCollectorRegistrar(mbus, loggertesthelper.Logger())
-	registrar.subscribeToComponentDiscover(cfc)
-
-	expectedJson, _ := createYagnatsMessage(t, DiscoverComponentMessageSubject)
-	mbus.PublishRequest(DiscoverComponentMessageSubject, "unused-reply", expectedJson)
-
-	payloadBytes := (<-called).Data
-	assert.Equal(t, expectedJson, payloadBytes)
-}
-
-func createYagnatsMessage(t *testing.T, subject string) ([]byte, *nats.Msg) {
+func createYagnatsMessage(t GinkgoTInterface, subject string) ([]byte, *nats.Msg) {
 
 	expected := &AnnounceComponentMessage{
 		Type:        "Loggregator Server",
@@ -59,7 +62,7 @@ func createYagnatsMessage(t *testing.T, subject string) ([]byte, *nats.Msg) {
 	}
 
 	expectedJson, err := json.Marshal(expected)
-	assert.NoError(t, err)
+	Expect(err).NotTo(HaveOccurred())
 
 	yagnatsMsg := &nats.Msg{
 		Subject: subject,

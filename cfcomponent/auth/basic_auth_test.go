@@ -3,10 +3,35 @@ package auth
 import (
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
+
+var _ = Describe("cfcomponent auth", func() {
+	It("requires basic auth", func() {
+		w := performMockRequest("realm")
+		Expect(w.Code).To(Equal(401))
+		Expect(w.HeaderMap.Get("WWW-Authenticate")).To(Equal(`Basic realm="realm"`))
+		Expect(w.Body.String()).To(Equal("401 Unauthorized"))
+	})
+
+	It("requires prompts with given realm", func() {
+		w := performMockRequest("myrealm")
+		Expect(w.HeaderMap.Get("WWW-Authenticate")).To(Equal(`Basic realm="myrealm"`))
+	})
+
+	It("fails with bad credentials", func() {
+		w := performMockRequest("realm", "baduser", "badpassword")
+		Expect(w.Code).To(Equal(401))
+	})
+
+	It("succeeds with good credentials", func() {
+		w := performMockRequest("realm", "user", "password")
+		Expect(w.Code).To(Equal(200))
+		Expect(w.Body.String()).To(Equal("OK"))
+	})
+})
 
 func performMockRequest(args ...string) *httptest.ResponseRecorder {
 	handler := func(w http.ResponseWriter, req *http.Request) {
@@ -21,27 +46,4 @@ func performMockRequest(args ...string) *httptest.ResponseRecorder {
 	}
 	wrappedHandler(w, req)
 	return w
-}
-
-func TestRequiresBasicAuth(t *testing.T) {
-	w := performMockRequest("realm")
-	assert.Equal(t, w.Code, 401)
-	assert.Equal(t, w.HeaderMap.Get("WWW-Authenticate"), `Basic realm="realm"`)
-	assert.Equal(t, w.Body.String(), "401 Unauthorized")
-}
-
-func TestRequiresPromptsWithGivenRealm(t *testing.T) {
-	w := performMockRequest("myrealm")
-	assert.Equal(t, w.HeaderMap.Get("WWW-Authenticate"), `Basic realm="myrealm"`)
-}
-
-func TestFailsWithBadCredentials(t *testing.T) {
-	w := performMockRequest("realm", "baduser", "badpassword")
-	assert.Equal(t, w.Code, 401)
-}
-
-func TestSucceedsWithGoodCredentials(t *testing.T) {
-	w := performMockRequest("realm", "user", "password")
-	assert.Equal(t, w.Code, 200)
-	assert.Equal(t, w.Body.String(), "OK")
 }
