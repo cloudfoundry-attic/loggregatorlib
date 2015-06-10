@@ -65,7 +65,10 @@ var _ = Describe("cfcomponent", func() {
 
 		Eventually(loggertesthelper.TestLoggerSink.LogContents).Should(ContainSubstring("Starting endpoints for component"))
 
-		req, err := http.NewRequest("GET", "http://localhost:7877/healthz", nil)
+		var req *http.Request
+		var err error
+		Eventually(func() error { req, err = http.NewRequest("GET", "http://localhost:7877/healthz", nil); return err }).Should(Succeed())
+
 		resp, err := http.DefaultClient.Do(req)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -87,7 +90,10 @@ var _ = Describe("cfcomponent", func() {
 
 		go component.StartMonitoringEndpoints()
 
-		req, err := http.NewRequest("GET", "http://localhost:9878/healthz", nil)
+		var req *http.Request
+		var err error
+		Eventually(func() error { req, err = http.NewRequest("GET", "http://localhost:9878/healthz", nil); return err }).Should(Succeed())
+
 		resp, err := http.DefaultClient.Do(req)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -152,7 +158,10 @@ var _ = Describe("cfcomponent", func() {
 
 		go component.StartMonitoringEndpoints()
 
-		req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
+		var req *http.Request
+		var err error
+		Eventually(func() error { req, err = http.NewRequest("GET", "http://localhost:1234/varz", nil); return err }).Should(Succeed())
+
 		Expect(err).NotTo(HaveOccurred())
 		resp, err := http.DefaultClient.Do(req)
 		Expect(err).NotTo(HaveOccurred())
@@ -187,7 +196,10 @@ var _ = Describe("cfcomponent", func() {
 
 		go component.StartMonitoringEndpoints()
 
-		req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
+		var req *http.Request
+		var err error
+		Eventually(func() error { req, err = http.NewRequest("GET", "http://localhost:1234/varz", nil); return err }).Should(Succeed())
+
 		req.SetBasicAuth(component.StatusCredentials[0], component.StatusCredentials[1])
 		resp, err := http.DefaultClient.Do(req)
 		Expect(err).NotTo(HaveOccurred())
