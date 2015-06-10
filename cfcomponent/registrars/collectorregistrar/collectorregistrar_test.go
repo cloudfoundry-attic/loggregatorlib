@@ -43,7 +43,11 @@ var _ = Describe("Collectorregistrar", func() {
 			}
 			registrar = collectorregistrar.NewCollectorRegistrar(fakeClientProvider, component, 10*time.Millisecond, nil)
 			doneChan = make(chan struct{})
+		})
 
+		JustBeforeEach(func() {
+			// Wait until after all BeforeEach's are done. This prevents a race condition with the
+			// BeforeEach below ("with errors from the client provider")
 			go func() {
 				defer close(doneChan)
 				registrar.Run()
@@ -77,11 +81,14 @@ var _ = Describe("Collectorregistrar", func() {
 		Context("with errors", func() {
 			Context("from the client provider", func() {
 				BeforeEach(func() {
-					fakeError := errors.New("fake error")
+					calledOnce := false
 					errorProvider = func() error {
-						returnedError := fakeError
-						fakeError = nil
-						return returnedError
+						if calledOnce {
+							return nil
+						}
+
+						calledOnce = true
+						return errors.New("fake error")
 					}
 				})
 
