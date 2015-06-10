@@ -65,12 +65,11 @@ var _ = Describe("cfcomponent", func() {
 
 		Eventually(loggertesthelper.TestLoggerSink.LogContents).Should(ContainSubstring("Starting endpoints for component"))
 
-		var req *http.Request
-		var err error
-		Eventually(func() error { req, err = http.NewRequest("GET", "http://localhost:7877/healthz", nil); return err }).Should(Succeed())
-
-		resp, err := http.DefaultClient.Do(req)
+		req, err := http.NewRequest("GET", "http://localhost:7877/healthz", nil)
 		Expect(err).NotTo(HaveOccurred())
+
+		var resp *http.Response
+		Eventually(func() error {resp, err = http.DefaultClient.Do(req); return err }).Should(Succeed())
 
 		Expect(200).To(Equal(resp.StatusCode))
 		Expect("text/plain").To(Equal(resp.Header.Get("Content-Type")))
@@ -90,12 +89,12 @@ var _ = Describe("cfcomponent", func() {
 
 		go component.StartMonitoringEndpoints()
 
-		var req *http.Request
-		var err error
-		Eventually(func() error { req, err = http.NewRequest("GET", "http://localhost:9878/healthz", nil); return err }).Should(Succeed())
-
-		resp, err := http.DefaultClient.Do(req)
+		req, err := http.NewRequest("GET", "http://localhost:9878/healthz", nil)
 		Expect(err).NotTo(HaveOccurred())
+
+		var resp *http.Response
+		Eventually(func() error { resp, err = http.DefaultClient.Do(req); return err }).Should(Succeed())
+
 
 		Expect(200).To(Equal(resp.StatusCode))
 		body, err := ioutil.ReadAll(resp.Body)
@@ -158,13 +157,12 @@ var _ = Describe("cfcomponent", func() {
 
 		go component.StartMonitoringEndpoints()
 
-		var req *http.Request
-		var err error
-		Eventually(func() error { req, err = http.NewRequest("GET", "http://localhost:1234/varz", nil); return err }).Should(Succeed())
+		req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
+		Expect(err).NotTo(HaveOccurred())
 
-		Expect(err).NotTo(HaveOccurred())
-		resp, err := http.DefaultClient.Do(req)
-		Expect(err).NotTo(HaveOccurred())
+		var resp *http.Response
+		Eventually(func() error { resp, err = http.DefaultClient.Do(req); return err }).Should(Succeed())
+
 		Expect(401).To(Equal(resp.StatusCode))
 	})
 
@@ -196,13 +194,13 @@ var _ = Describe("cfcomponent", func() {
 
 		go component.StartMonitoringEndpoints()
 
-		var req *http.Request
-		var err error
-		Eventually(func() error { req, err = http.NewRequest("GET", "http://localhost:1234/varz", nil); return err }).Should(Succeed())
+		req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
+		Expect(err).NotTo(HaveOccurred())
 
 		req.SetBasicAuth(component.StatusCredentials[0], component.StatusCredentials[1])
-		resp, err := http.DefaultClient.Do(req)
-		Expect(err).NotTo(HaveOccurred())
+
+		var resp *http.Response
+		Eventually(func() error { resp, err = http.DefaultClient.Do(req) ; return err }).Should(Succeed())
 
 		memStats := new(runtime.MemStats)
 		runtime.ReadMemStats(memStats)
