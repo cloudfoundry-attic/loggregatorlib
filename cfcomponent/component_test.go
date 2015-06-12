@@ -69,7 +69,7 @@ var _ = Describe("cfcomponent", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		var resp *http.Response
-		Eventually(func() error {resp, err = http.DefaultClient.Do(req); return err }).Should(Succeed())
+		Eventually(func() error { resp, err = http.DefaultClient.Do(req); return err }).Should(Succeed())
 
 		Expect(200).To(Equal(resp.StatusCode))
 		Expect("text/plain").To(Equal(resp.Header.Get("Content-Type")))
@@ -94,7 +94,6 @@ var _ = Describe("cfcomponent", func() {
 
 		var resp *http.Response
 		Eventually(func() error { resp, err = http.DefaultClient.Do(req); return err }).Should(Succeed())
-
 
 		Expect(200).To(Equal(resp.StatusCode))
 		body, err := ioutil.ReadAll(resp.Body)
@@ -200,7 +199,7 @@ var _ = Describe("cfcomponent", func() {
 		req.SetBasicAuth(component.StatusCredentials[0], component.StatusCredentials[1])
 
 		var resp *http.Response
-		Eventually(func() error { resp, err = http.DefaultClient.Do(req) ; return err }).Should(Succeed())
+		Eventually(func() error { resp, err = http.DefaultClient.Do(req); return err }).Should(Succeed())
 
 		memStats := new(runtime.MemStats)
 		runtime.ReadMemStats(memStats)
