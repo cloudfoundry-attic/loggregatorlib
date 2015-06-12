@@ -20,6 +20,8 @@ before_script:
 - go get -d -v github.com/coreos/etcd
 - pushd $HOME/gopath/src/github.com/coreos/etcd && git checkout fe1d9565c2619f7633d21d14c48588700edeed4d && go install ; popd
 - pushd $HOME/gopath/src/github.com/coreos/go-etcd && git checkout 54b5d671009c9e841338a6b41ee9330225c57ff3 ; popd
+- SHA=$(curl -s https://api.github.com/repos/cloudfoundry/loggregator/contents/src/github.com/gogo/protobuf | grep sha | cut -f4 -d\")
+- pushd $HOME/gopath/src/github.com/gogo/protobuf && git checkout $SHA && popd
 
 
 script:
