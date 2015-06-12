@@ -42,17 +42,21 @@ var _ = Describe("loggregatorclient", func() {
 	})
 
 	Context("Metrics", func() {
+		var client loggregatorclient.LoggregatorClient
 		BeforeEach(func() {
+			client = loggregatorclient.NewLoggregatorClient("localhost:9875", gosteno.NewLogger("TestLogger"), 0)
 			expectedOutput := []byte("Important Testmessage")
 
-			loggregatorClient.Send(expectedOutput)
+			client.Send(expectedOutput)
 
 			buffer := make([]byte, 4096)
 			udpListener.ReadFromUDP(buffer)
+
+			client.Stop()
 		})
 
 		It("emits over varz", func() {
-			metrics := loggregatorClient.Emit().Metrics
+			metrics := client.Emit().Metrics
 			Expect(metrics).To(HaveLen(5))
 
 			for _, metric := range metrics {
