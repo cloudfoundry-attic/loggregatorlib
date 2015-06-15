@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"fmt"
 	"path"
 	"sync"
 	"time"
@@ -9,6 +10,7 @@ import (
 	. "github.com/cloudfoundry/loggregatorlib/store"
 	"github.com/cloudfoundry/loggregatorlib/store/cache"
 	"github.com/cloudfoundry/storeadapter"
+	"github.com/cloudfoundry/storeadapter/fakestoreadapter"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,23 +36,12 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 	var app1Service2 appservice.AppService
 	var app2Service1 appservice.AppService
 
-	drainOutgoingChannel := func(c <-chan appservice.AppService, count int) []appservice.AppService {
-		appServices := []appservice.AppService{}
-		for i := 0; i < count; i++ {
-			var appService appservice.AppService
-			Eventually(c).Should(Receive(&appService))
-			appServices = append(appServices, appService)
-		}
-
-		return appServices
-	}
-
 	BeforeEach(func() {
 		app1Service1 = appservice.AppService{AppId: APP1_ID, Url: "syslog://example.com:12345"}
 		app1Service2 = appservice.AppService{AppId: APP1_ID, Url: "syslog://example.com:12346"}
 		app2Service1 = appservice.AppService{AppId: APP2_ID, Url: "syslog://example.com:12345"}
 
-		adapter = etcdRunner.Adapter()
+		adapter = fakestoreadapter.New()
 
 		c := cache.NewAppServiceCache()
 		watcher, outAddChan, outRemoveChan = NewAppServiceStoreWatcher(adapter, c)
@@ -261,9 +252,8 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 				Expect(appService).To(Equal(app2Service2))
 
 				adapter.UpdateDirTTL("/loggregator/services/app-2", 1)
-				time.Sleep(1 * time.Second)
+				time.Sleep(1100 * time.Millisecond)
 				Eventually(outAddChan).Should(BeEmpty())
-				Expect(outAddChan).To(BeEmpty())
 				appServices := drainOutgoingChannel(outRemoveChan, 2)
 
 				Expect(appServices).To(ConsistOf(app2Service1, app2Service2))
@@ -279,4 +269,15 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 
 func key(service appservice.AppService) string {
 	return path.Join("/loggregator/services", service.AppId, service.Id())
+}
+
+func drainOutgoingChannel(c <-chan appservice.AppService, count int) []appservice.AppService {
+	appServices := []appservice.AppService{}
+	for i := 0; i < count; i++ {
+		var appService appservice.AppService
+		Eventually(c).Should(Receive(&appService), fmt.Sprintf("Failed to drain outgoing chan with expected number of messages; received %d but expected %d.", i, count))
+		appServices = append(appServices, appService)
+	}
+
+	return appServices
 }
