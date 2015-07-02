@@ -42,6 +42,7 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			_, _, err := ws.ReadMessage()
 			if err != nil {
 				close(clientWentAway)
+				h.logger.Debugf("websocket handler: connection from %s was closed", r.RemoteAddr)
 				return
 			}
 		}
@@ -61,6 +62,7 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		case message, ok := <-h.messages:
 			if !ok {
+				h.logger.Debug("websocket handler: messages channel was closed")
 				return
 			}
 			err = ws.WriteMessage(websocket.BinaryMessage, message)
