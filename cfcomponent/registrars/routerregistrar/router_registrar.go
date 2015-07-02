@@ -115,6 +115,7 @@ func (r *registrar) keepRegisteringWithRouter(hostname string, port uint32, uris
 			if err != nil {
 				r.Error(err.Error())
 			}
+			r.Debug("Reregistered with router")
 
 			<-timer.C
 		}
