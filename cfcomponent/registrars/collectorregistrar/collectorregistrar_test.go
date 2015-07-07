@@ -31,7 +31,7 @@ var _ = Describe("Collectorregistrar", func() {
 
 		BeforeEach(func() {
 			fakeClient = newFakeClient()
-			component, _ = cfcomponent.NewComponent(loggertesthelper.Logger(), "compType", 3, nil, 9999, []string{"username", "password"}, nil)
+			component, _ = cfcomponent.NewComponent(loggertesthelper.Logger(), "compType", 3, nil, 9999, []string{"username", "password"}, nil, "jobname")
 			component.UUID = "OurUUID"
 			errorProvider = func() error {
 				return nil
@@ -68,7 +68,7 @@ var _ = Describe("Collectorregistrar", func() {
 				}).Should(BeNumerically(">", 1))
 
 				for _, message := range messages {
-					Expect(message.Data).To(MatchRegexp(`^\{"type":"compType","index":3,"host":"[^:]*:9999","uuid":"3-OurUUID","credentials":\["username","password"\]\}$`))
+					Expect(message.Data).To(MatchRegexp(`^\{"type":"compType","index":3,"job_name":"jobname","host":"[^:]*:9999","uuid":"3-OurUUID","credentials":\["username","password"\]\}$`))
 				}
 			})
 
