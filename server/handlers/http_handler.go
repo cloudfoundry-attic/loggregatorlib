@@ -26,7 +26,12 @@ func (h *httpHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", `multipart/x-protobuf; boundary=`+mp.Boundary())
 
 	for message := range h.messages {
-		partWriter, _ := mp.CreatePart(nil)
+		partWriter, err := mp.CreatePart(nil)
+		if err != nil {
+			h.logger.Infof("http handler: Client went away while serving recent logs")
+			return
+		}
+
 		partWriter.Write(message)
 	}
 }
