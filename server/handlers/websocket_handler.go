@@ -25,14 +25,19 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(*http.Request) bool { return true },
 	}
-	ws, err := upgrader.Upgrade(rw, r, nil)
 
+	ws, err := upgrader.Upgrade(rw, r, nil)
 	if err != nil {
 		h.logger.Debugf("websocket handler: Not a websocket handshake: %s", err.Error())
 		return
 	}
 	defer ws.Close()
-	defer ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Time{})
+
+	closeCode, closeMessage := h.runWebsocketUntilClosed(ws)
+	ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(closeCode, closeMessage), time.Time{})
+}
+
+func (h *websocketHandler) runWebsocketUntilClosed(ws *websocket.Conn) (closeCode int, closeMessage string) {
 	keepAliveExpired := make(chan struct{})
 	clientWentAway := make(chan struct{})
 
@@ -42,7 +47,7 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			_, _, err := ws.ReadMessage()
 			if err != nil {
 				close(clientWentAway)
-				h.logger.Debugf("websocket handler: connection from %s was closed", r.RemoteAddr)
+				h.logger.Debugf("websocket handler: connection from %s was closed", ws.RemoteAddr().String())
 				return
 			}
 		}
@@ -51,21 +56,25 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	go func() {
 		server.NewKeepAlive(ws, h.keepAlive).Run()
 		close(keepAliveExpired)
-		h.logger.Debugf("websocket handler: Connection from %s timed out", r.RemoteAddr)
+		h.logger.Debugf("websocket handler: Connection from %s timed out", ws.RemoteAddr().String())
 	}()
 
+	closeCode = websocket.CloseNormalClosure
+	closeMessage = ""
 	for {
 		select {
 		case <-clientWentAway:
 			return
 		case <-keepAliveExpired:
+			closeCode = websocket.CloseInternalServerErr
+			closeMessage = "Client did not respond to ping before keep-alive timeout expired."
 			return
 		case message, ok := <-h.messages:
 			if !ok {
 				h.logger.Debug("websocket handler: messages channel was closed")
 				return
 			}
-			err = ws.WriteMessage(websocket.BinaryMessage, message)
+			err := ws.WriteMessage(websocket.BinaryMessage, message)
 			if err != nil {
 				h.logger.Debugf("websocket handler: Error writing to websocket: %s", err.Error())
 				return

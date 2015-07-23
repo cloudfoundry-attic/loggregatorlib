@@ -10,6 +10,7 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/server/handlers"
 	"github.com/gorilla/websocket"
 
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -140,6 +141,40 @@ var _ = Describe("WebsocketHandler", func() {
 		Expect(err).To(Equal(io.EOF))
 	})
 
+	Context("when the KeepAlive expires", func() {
+		It("sends a CloseInternalServerErr frame", func() {
+			ws, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			time.Sleep(200 * time.Millisecond) // Longer than  the keepAlive timeout
+
+			_, _, err = ws.ReadMessage()
+			Expect(err.Error()).To(ContainSubstring("1011"))
+			Expect(err.Error()).To(ContainSubstring("Client did not respond to ping before keep-alive timeout expired."))
+		})
+
+		It("logs an appropriate message", func() {
+			ws, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			time.Sleep(200 * time.Millisecond) // Longer than  the keepAlive timeout
+
+			expectedMessage := fmt.Sprintf("websocket handler: Connection from %s timed out", ws.LocalAddr().String())
+			Expect(loggertesthelper.TestLoggerSink.LogContents()).To(ContainSubstring(expectedMessage))
+		})
+	})
+
+	Context("when client goes away", func() {
+		It("logs and appropriate message", func() {
+			ws, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			ws.Close()
+
+			expectedMessage := fmt.Sprintf("websocket handler: connection from %s was closed", ws.LocalAddr().String())
+			Eventually(loggertesthelper.TestLoggerSink.LogContents).Should(ContainSubstring(expectedMessage))
+		})
+	})
 })
 
 func httpToWs(u string) string {
