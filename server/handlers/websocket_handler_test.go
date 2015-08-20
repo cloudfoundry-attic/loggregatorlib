@@ -1,7 +1,6 @@
 package handlers_test
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -138,7 +137,7 @@ var _ = Describe("WebsocketHandler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		close(messagesChan)
 		_, _, err = ws.ReadMessage()
-		Expect(err).To(Equal(io.EOF))
+		Expect(err.Error()).To(ContainSubstring("websocket: close 1000"))
 	})
 
 	Context("when the KeepAlive expires", func() {
