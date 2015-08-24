@@ -66,7 +66,7 @@ func (h *websocketHandler) runWebsocketUntilClosed(ws *websocket.Conn) (closeCod
 		case <-clientWentAway:
 			return
 		case <-keepAliveExpired:
-			closeCode = websocket.CloseInternalServerErr
+			closeCode = websocket.ClosePolicyViolation
 			closeMessage = "Client did not respond to ping before keep-alive timeout expired."
 			return
 		case message, ok := <-h.messages:

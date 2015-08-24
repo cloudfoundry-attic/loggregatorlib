@@ -148,7 +148,7 @@ var _ = Describe("WebsocketHandler", func() {
 			time.Sleep(200 * time.Millisecond) // Longer than  the keepAlive timeout
 
 			_, _, err = ws.ReadMessage()
-			Expect(err.Error()).To(ContainSubstring("1011"))
+			Expect(err.Error()).To(ContainSubstring("1008"))
 			Expect(err.Error()).To(ContainSubstring("Client did not respond to ping before keep-alive timeout expired."))
 		})
 
