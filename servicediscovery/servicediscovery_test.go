@@ -34,17 +34,17 @@ var _ = Describe("ServiceDiscovery", func() {
 		}
 		storeAdapter.Create(node)
 
-		go list.Run(1 * time.Millisecond)
+		go list.Run(2 * time.Second)
 
 		expectedAddresses := []string{"10.0.0.1"}
 
-		Eventually(list.GetAddresses).Should(ConsistOf(expectedAddresses))
+		Eventually(list.GetAddresses, 1).Should(ConsistOf(expectedAddresses))
 	})
 
 	It("adds servers that appear later", func() {
-		go list.Run(1 * time.Millisecond)
+		go list.Run(2 * time.Second)
 
-		Expect(list.GetAddresses()).To(BeEmpty())
+		Consistently(list.GetAddresses, 1).Should(BeEmpty())
 
 		node := storeadapter.StoreNode{
 			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
@@ -54,7 +54,7 @@ var _ = Describe("ServiceDiscovery", func() {
 
 		expectedAddresses := []string{"10.0.0.1"}
 
-		Eventually(list.GetAddresses).Should(ConsistOf(expectedAddresses))
+		Eventually(list.GetAddresses, 2).Should(ConsistOf(expectedAddresses))
 	})
 
 	It("removes servers that disappear later", func() {

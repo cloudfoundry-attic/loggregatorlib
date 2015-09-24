@@ -38,6 +38,8 @@ func (list *serverAddressList) Run(updateInterval time.Duration) {
 	ticker := time.NewTicker(updateInterval)
 	defer ticker.Stop()
 
+	list.DiscoverAddresses()
+
 	for {
 		select {
 		case <-list.stopChan:
