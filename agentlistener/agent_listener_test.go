@@ -1,7 +1,6 @@
 package agentlistener_test
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/cloudfoundry/loggregatorlib/agentlistener"
@@ -56,47 +55,6 @@ var _ = Describe("AgentListener", func() {
 			Expect(string(receivedAgain)).To(Equal(otherData))
 			close(done)
 		}, 2)
-	})
-
-	Context("Emit", func() {
-		It("uses the given name for the context", func() {
-			context := listener.Emit()
-
-			Expect(context.Name).To(Equal("agentListener"))
-		})
-
-		It("includes correct metrics", func(done Done) {
-			expectedData := "Some Data"
-			otherData := "More stuff"
-
-			connection, err := net.Dial("udp", "localhost:3456")
-
-			_, err = connection.Write([]byte(expectedData))
-			Expect(err).To(BeNil())
-			<-dataChannel
-
-			_, err = connection.Write([]byte(otherData))
-			Expect(err).To(BeNil())
-			<-dataChannel
-
-			metrics := listener.Emit().Metrics
-
-			Expect(metrics).To(HaveLen(3)) //make sure all expected metrics are present
-			for _, metric := range metrics {
-				switch metric.Name {
-				case "currentBufferCount":
-					Expect(metric.Value).To(Equal(0))
-				case "receivedMessageCount":
-					Expect(metric.Value).To(Equal(uint64(2)))
-				case "receivedByteCount":
-					Expect(metric.Value).To(Equal(uint64(19)))
-				default:
-					Fail(fmt.Sprintf("Got an invalid metric name: %s", metric.Name))
-				}
-			}
-
-			close(done)
-		})
 	})
 
 	Context("dropsonde metric emission", func() {

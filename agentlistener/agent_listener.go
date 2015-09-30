@@ -3,15 +3,12 @@ package agentlistener
 import (
 	"net"
 	"sync"
-	"sync/atomic"
 
 	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/cloudfoundry/gosteno"
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/instrumentation"
 )
 
 type AgentListener interface {
-	instrumentation.Instrumentable
 	Start()
 	Stop()
 }
@@ -19,8 +16,6 @@ type AgentListener interface {
 type agentListener struct {
 	*gosteno.Logger
 	host                 string
-	receivedMessageCount uint64
-	receivedByteCount    uint64
 	dataChannel          chan []byte
 	connection           net.PacketConn
 	contextName          string
@@ -66,8 +61,6 @@ func (agentListener *agentListener) Start() {
 		metrics.BatchIncrementCounter(agentListener.contextName + ".receivedMessageCount")
 		metrics.BatchAddCounter(agentListener.contextName+".receivedByteCount", uint64(readCount))
 
-		atomic.AddUint64(&agentListener.receivedMessageCount, 1)
-		atomic.AddUint64(&agentListener.receivedByteCount, uint64(readCount))
 		agentListener.dataChannel <- readData
 	}
 
@@ -79,16 +72,3 @@ func (agentListener *agentListener) Stop() {
 	agentListener.connection.Close()
 }
 
-func (agentListener *agentListener) metrics() []instrumentation.Metric {
-	return []instrumentation.Metric{
-		instrumentation.Metric{Name: "currentBufferCount", Value: len(agentListener.dataChannel)},
-		instrumentation.Metric{Name: "receivedMessageCount", Value: atomic.LoadUint64(&agentListener.receivedMessageCount)},
-		instrumentation.Metric{Name: "receivedByteCount", Value: atomic.LoadUint64(&agentListener.receivedByteCount)},
-	}
-}
-
-func (agentListener *agentListener) Emit() instrumentation.Context {
-	return instrumentation.Context{Name: agentListener.contextName,
-		Metrics: agentListener.metrics(),
-	}
-}
