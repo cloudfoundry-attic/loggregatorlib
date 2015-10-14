@@ -2,6 +2,7 @@ package agentlistener_test
 
 import (
 	"net"
+	"strconv"
 
 	"github.com/cloudfoundry/loggregatorlib/agentlistener"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
@@ -9,6 +10,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 )
 
@@ -16,18 +18,22 @@ var _ = Describe("AgentListener", func() {
 	var listener agentlistener.AgentListener
 	var dataChannel <-chan []byte
 	var listenerStopped chan struct{}
+	var agentAddress string
 
 	BeforeEach(func() {
 		listenerStopped = make(chan struct{})
 		loggertesthelper.TestLoggerSink.Clear()
 
-		listener, dataChannel = agentlistener.NewAgentListener("127.0.0.1:3456", loggertesthelper.Logger(), "agentListener")
+		port := 3456 + config.GinkgoConfig.ParallelNode
+		agentAddress = net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+
+		listener, dataChannel = agentlistener.NewAgentListener(agentAddress, loggertesthelper.Logger(), "agentListener")
 		go func() {
 			listener.Start()
 			close(listenerStopped)
 		}()
 
-		Eventually(loggertesthelper.TestLoggerSink.LogContents).Should(ContainSubstring("Listening on port 127.0.0.1:3456"))
+		Eventually(loggertesthelper.TestLoggerSink.LogContents).Should(ContainSubstring("Listening on port " + agentAddress))
 	})
 
 	AfterEach(func() {
@@ -40,7 +46,7 @@ var _ = Describe("AgentListener", func() {
 			expectedData := "Some Data"
 			otherData := "More stuff"
 
-			connection, err := net.Dial("udp", "localhost:3456")
+			connection, err := net.Dial("udp", agentAddress)
 
 			_, err = connection.Write([]byte(expectedData))
 			Expect(err).To(BeNil())
@@ -67,7 +73,7 @@ var _ = Describe("AgentListener", func() {
 			expectedData := "Some Data"
 			otherData := "More stuff"
 
-			connection, err := net.Dial("udp", "localhost:3456")
+			connection, err := net.Dial("udp", agentAddress)
 
 			_, err = connection.Write([]byte(expectedData))
 			Expect(err).To(BeNil())
