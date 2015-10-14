@@ -63,12 +63,10 @@ func (w *AppServiceStoreWatcher) Run() {
 		close(w.outRemoveChan)
 	}()
 
+	events, _, errChan := w.adapter.Watch("/loggregator/services")
+
 	w.registerExistingServicesFromStore()
-
 	for {
-		events, stopChan, errChan := w.adapter.Watch("/loggregator/services")
-
-	InnerLoop:
 		for {
 			select {
 			case err, ok := <-errChan:
@@ -76,9 +74,7 @@ func (w *AppServiceStoreWatcher) Run() {
 					return
 				}
 				cfcomponent.Logger.Errorf("AppStoreWatcher: Got error while waiting for ETCD events: %s", err.Error())
-				close(stopChan)
-				break InnerLoop
-
+				events, _, errChan = w.adapter.Watch("/loggregator/services")
 			case event, ok := <-events:
 				if !ok {
 					return
@@ -91,17 +87,15 @@ func (w *AppServiceStoreWatcher) Run() {
 						// we can ignore any directory nodes (app or other namespace additions)
 						continue
 					}
-					w.Add(appServiceFromStoreNode(*(event.Node)))
+					w.Add(appServiceFromStoreNode(event.Node))
 				case storeadapter.DeleteEvent:
-					w.deleteEvent(*(event.PrevNode))
+					w.deleteEvent(event.PrevNode)
 				case storeadapter.ExpireEvent:
-					w.deleteEvent(*(event.PrevNode))
+					w.deleteEvent(event.PrevNode)
 				}
 			}
 		}
-
 	}
-
 }
 
 func (w *AppServiceStoreWatcher) registerExistingServicesFromStore() {
@@ -109,14 +103,14 @@ func (w *AppServiceStoreWatcher) registerExistingServicesFromStore() {
 	services, _ := w.adapter.ListRecursively("/loggregator/services/")
 	for _, node := range services.ChildNodes {
 		for _, node := range node.ChildNodes {
-			appService := appServiceFromStoreNode(node)
+			appService := appServiceFromStoreNode(&node)
 			w.Add(appService)
 		}
 	}
 	cfcomponent.Logger.Debug("AppStoreWatcher: Existing services all registered")
 }
 
-func appServiceFromStoreNode(node storeadapter.StoreNode) appservice.AppService {
+func appServiceFromStoreNode(node *storeadapter.StoreNode) appservice.AppService {
 	key := node.Key
 	appId := path.Base(path.Dir(key))
 	serviceUrl := string(node.Value)
@@ -124,7 +118,7 @@ func appServiceFromStoreNode(node storeadapter.StoreNode) appservice.AppService 
 	return appService
 }
 
-func (w *AppServiceStoreWatcher) deleteEvent(node storeadapter.StoreNode) {
+func (w *AppServiceStoreWatcher) deleteEvent(node *storeadapter.StoreNode) {
 	if node.Dir {
 		key := node.Key
 		appId := path.Base(key)

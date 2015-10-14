@@ -6,11 +6,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudfoundry/gunk/workpool"
 	"github.com/cloudfoundry/loggregatorlib/appservice"
 	. "github.com/cloudfoundry/loggregatorlib/store"
 	"github.com/cloudfoundry/loggregatorlib/store/cache"
 	"github.com/cloudfoundry/storeadapter"
-	"github.com/cloudfoundry/storeadapter/fakestoreadapter"
+	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -41,7 +42,11 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 		app1Service2 = appservice.AppService{AppId: APP1_ID, Url: "syslog://example.com:12346"}
 		app2Service1 = appservice.AppService{AppId: APP2_ID, Url: "syslog://example.com:12345"}
 
-		adapter = fakestoreadapter.New()
+		workPool, err := workpool.NewWorkPool(10)
+		Expect(err).NotTo(HaveOccurred())
+		adapter = etcdstoreadapter.NewETCDStoreAdapter(etcdRunner.NodeURLS(), workPool)
+		err = adapter.Connect()
+		Expect(err).NotTo(HaveOccurred())
 
 		c := cache.NewAppServiceCache()
 		watcher, outAddChan, outRemoveChan = NewAppServiceStoreWatcher(adapter, c)
@@ -55,10 +60,9 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 		}
 	})
 
-	AfterEach(func(done Done) {
+	AfterEach(func() {
 		Expect(adapter.Disconnect()).To(Succeed())
 		watcherRunComplete.Wait()
-		close(done)
 	})
 
 	Describe("Shutdown", func() {
@@ -90,7 +94,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 				adapter.Create(buildNode(app2Service1))
 			})
 
-			It("should send all the AppServices on the output add channel", func(done Done) {
+			It("should send all the AppServices on the output add channel", func() {
 				runWatcher()
 
 				appServices := drainOutgoingChannel(outAddChan, 3)
@@ -100,38 +104,37 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 				Expect(appServices).To(ContainElement(app2Service1))
 
 				Expect(outRemoveChan).To(BeEmpty())
-
-				close(done)
 			})
 		})
 	})
 
 	Describe("when the store has data and watcher is bootstrapped", func() {
-		BeforeEach(func(done Done) {
-			adapter.Create(buildNode(app1Service1))
-			adapter.Create(buildNode(app1Service2))
-			adapter.Create(buildNode(app2Service1))
+		BeforeEach(func() {
+			err := adapter.Create(buildNode(app1Service1))
+			Expect(err).NotTo(HaveOccurred())
+			err = adapter.Create(buildNode(app1Service2))
+			Expect(err).NotTo(HaveOccurred())
+			err = adapter.Create(buildNode(app2Service1))
+			Expect(err).NotTo(HaveOccurred())
 
 			runWatcher()
 			drainOutgoingChannel(outAddChan, 3)
-			close(done)
-		}, 5)
+		})
 
-		It("does not send updates when the data has already been processed", func(done Done) {
+		It("does not send updates when the data has already been processed", func() {
 			adapter.Create(buildNode(app1Service1))
 			adapter.Create(buildNode(app1Service2))
 
 			Expect(outAddChan).To(BeEmpty())
 			Expect(outRemoveChan).To(BeEmpty())
-
-			close(done)
 		})
 
 		Context("when there is new data in the store", func() {
 			Context("when an existing app has a new service through a create operation", func() {
 				It("adds that service to the outgoing add channel", func() {
 					app2Service2 := appservice.AppService{AppId: APP2_ID, Url: "syslog://new.example.com:12345"}
-					adapter.Get(key(app2Service2))
+					_, err := adapter.Get(key(app2Service2))
+					Expect(err).To(Equal(storeadapter.ErrorKeyNotFound))
 
 					adapter.Create(buildNode(app2Service2))
 
@@ -161,7 +164,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 			})
 
 			Context("when a new app appears", func() {
-				It("adds that app and its services to the outgoing add channel", func(done Done) {
+				It("adds that app and its services to the outgoing add channel", func() {
 					app3Service1 := appservice.AppService{AppId: APP3_ID, Url: "syslog://app3.example.com:12345"}
 					app3Service2 := appservice.AppService{AppId: APP3_ID, Url: "syslog://app3.example.com:12346"}
 
@@ -173,8 +176,6 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 					Expect(appServices).To(ConsistOf(app3Service1, app3Service2))
 
 					Expect(outRemoveChan).To(BeEmpty())
-
-					close(done)
 				})
 			})
 		})
@@ -190,7 +191,8 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 		Context("when a service or app should be removed", func() {
 			Context("when an existing app loses one of its services", func() {
 				It("sends that service on the output remove channel", func() {
-					adapter.Delete(key(app1Service2))
+					err := adapter.Delete(key(app1Service2))
+					Expect(err).NotTo(HaveOccurred())
 
 					var appService appservice.AppService
 					Eventually(outRemoveChan).Should(Receive(&appService))
