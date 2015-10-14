@@ -2,24 +2,29 @@ package loggregatorclient_test
 
 import (
 	"net"
+	"strconv"
 
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("loggregatorclient", func() {
 	var (
-		loggregatorClient loggregatorclient.LoggregatorClient
-		udpListener       *net.UDPConn
+		loggregatorClient  loggregatorclient.LoggregatorClient
+		udpListener        *net.UDPConn
+		loggregatorAddress string
 	)
 
 	BeforeEach(func() {
-		loggregatorClient = loggregatorclient.NewLoggregatorClient("localhost:9875", gosteno.NewLogger("TestLogger"), 0)
+		port := 9875 + config.GinkgoConfig.ParallelNode
+		loggregatorAddress = net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+		loggregatorClient = loggregatorclient.NewLoggregatorClient(loggregatorAddress, gosteno.NewLogger("TestLogger"), 0)
 
-		udpAddr, _ := net.ResolveUDPAddr("udp", "localhost:9875")
+		udpAddr, _ := net.ResolveUDPAddr("udp", loggregatorAddress)
 		udpListener, _ = net.ListenUDP("udp", udpAddr)
 	})
 
@@ -44,7 +49,7 @@ var _ = Describe("loggregatorclient", func() {
 	Context("Metrics", func() {
 		var client loggregatorclient.LoggregatorClient
 		BeforeEach(func() {
-			client = loggregatorclient.NewLoggregatorClient("localhost:9875", gosteno.NewLogger("TestLogger"), 0)
+			client = loggregatorclient.NewLoggregatorClient(loggregatorAddress, gosteno.NewLogger("TestLogger"), 0)
 			expectedOutput := []byte("Important Testmessage")
 
 			client.Send(expectedOutput)
