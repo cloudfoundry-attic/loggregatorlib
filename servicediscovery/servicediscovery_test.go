@@ -1,12 +1,11 @@
 package servicediscovery_test
 
 import (
-	"time"
-
+	"github.com/cloudfoundry/gunk/workpool"
 	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/loggregatorlib/servicediscovery"
 	"github.com/cloudfoundry/storeadapter"
-	"github.com/cloudfoundry/storeadapter/fakestoreadapter"
+	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,12 +13,23 @@ import (
 
 var _ = Describe("ServiceDiscovery", func() {
 	var (
-		storeAdapter *fakestoreadapter.FakeStoreAdapter
+		storeAdapter storeadapter.StoreAdapter
 		list         servicediscovery.ServerAddressList
+		node         storeadapter.StoreNode
 	)
 
 	BeforeEach(func() {
-		storeAdapter = fakestoreadapter.New()
+		node = storeadapter.StoreNode{
+			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
+			Value: []byte("10.0.0.1"),
+		}
+
+		workPool, err := workpool.NewWorkPool(10)
+		Expect(err).NotTo(HaveOccurred())
+		storeAdapter = etcdstoreadapter.NewETCDStoreAdapter(etcdRunner.NodeURLS(), workPool)
+		err = storeAdapter.Connect()
+		Expect(err).NotTo(HaveOccurred())
+
 		list = servicediscovery.NewServerAddressList(storeAdapter, "/healthstatus/loggregator", loggertesthelper.Logger())
 	})
 
@@ -27,139 +37,79 @@ var _ = Describe("ServiceDiscovery", func() {
 		list.Stop()
 	})
 
-	It("gets the state of the world at startup", func() {
-		node := storeadapter.StoreNode{
-			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-			Value: []byte("10.0.0.1"),
-		}
-		storeAdapter.Create(node)
+	Context("when a services is created", func() {
+		Context("before servicediscovery begins", func() {
+			It("gets the state of the world at startup", func() {
+				Expect(list.GetAddresses()).To(HaveLen(0))
 
-		go list.Run(2 * time.Second)
+				storeAdapter.Create(node)
+				go list.Run()
 
-		expectedAddresses := []string{"10.0.0.1"}
+				Eventually(list.GetAddresses).Should(ConsistOf(string(node.Value)))
+			})
+		})
 
-		Eventually(list.GetAddresses, 1).Should(ConsistOf(expectedAddresses))
+		Context("after servicediscovery begins", func() {
+			It("adds servers that appear later", func() {
+				go list.Run()
+				Consistently(list.GetAddresses, 1).Should(BeEmpty())
+
+				storeAdapter.Create(node)
+
+				Eventually(list.GetAddresses).Should(ConsistOf(string(node.Value)))
+			})
+		})
 	})
 
-	It("adds servers that appear later", func() {
-		go list.Run(2 * time.Second)
+	Context("when services exists", func() {
+		BeforeEach(func() {
+			err := storeAdapter.Create(node)
+			Expect(err).NotTo(HaveOccurred())
 
-		Consistently(list.GetAddresses, 1).Should(BeEmpty())
+			go list.Run()
+			Eventually(list.GetAddresses).Should(HaveLen(1))
+		})
 
-		node := storeadapter.StoreNode{
-			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-			Value: []byte("10.0.0.1"),
-		}
-		storeAdapter.Create(node)
+		Context("when a node is removed", func() {
+			It("removes the service", func() {
+				err := storeAdapter.Delete(node.Key)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(list.GetAddresses).Should(BeEmpty())
+			})
+		})
 
-		expectedAddresses := []string{"10.0.0.1"}
+		Context("when a node is updated", func() {
+			It("the old value is replaced", func() {
+				node.Value = []byte("10.0.0.2")
+				err := storeAdapter.Update(node)
+				Expect(err).NotTo(HaveOccurred())
 
-		Eventually(list.GetAddresses, 2).Should(ConsistOf(expectedAddresses))
-	})
+				Eventually(list.GetAddresses).Should(ConsistOf(string(node.Value)))
+			})
+		})
 
-	It("removes servers that disappear later", func() {
-		node := storeadapter.StoreNode{
-			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-			Value: []byte("10.0.0.1"),
-		}
+		It("only finds nodes for the server type", func() {
+			router := storeadapter.StoreNode{
+				Key:   "/healthstatus/router/z1/router_z1",
+				Value: []byte("10.99.99.99"),
+			}
+			storeAdapter.Create(router)
 
-		storeAdapter.Create(node)
+			Consistently(list.GetAddresses).Should(ConsistOf(string(node.Value)))
+		})
 
-		list := servicediscovery.NewServerAddressList(storeAdapter, "/healthstatus/loggregator", loggertesthelper.Logger())
+		Context("when ETCD is not running", func() {
+			JustBeforeEach(func() {
+				etcdRunner.Stop()
+			})
 
-		go list.Run(1 * time.Millisecond)
+			AfterEach(func() {
+				etcdRunner.Start()
+			})
 
-		storeAdapter.Delete("/healthstatus/loggregator/z1/loggregator_z1")
-
-		Eventually(list.GetAddresses).Should(BeEmpty())
-	})
-
-	It("only finds nodes for the server type", func() {
-		node := storeadapter.StoreNode{
-			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-			Value: []byte("10.0.0.1"),
-		}
-
-		storeAdapter.Create(node)
-
-		node = storeadapter.StoreNode{
-			Key:   "/healthstatus/router/z1/router_z1",
-			Value: []byte("10.99.99.99"),
-		}
-
-		storeAdapter.Create(node)
-
-		go list.Run(1 * time.Millisecond)
-
-		expectedAddresses := []string{"10.0.0.1"}
-
-		Eventually(list.GetAddresses).Should(ConsistOf(expectedAddresses))
-	})
-
-	It("only returns one copy of each server", func() {
-		node := storeadapter.StoreNode{
-			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-			Value: []byte("10.0.0.1"),
-		}
-
-		storeAdapter.Create(node)
-
-		go list.Run(1 * time.Millisecond)
-
-		expectedAddresses := []string{"10.0.0.1"}
-
-		Eventually(list.GetAddresses).Should(ConsistOf(expectedAddresses))
-		Consistently(list.GetAddresses).Should(HaveLen(1))
-	})
-
-	It("continues to run if the key is not found", func() {
-		node := storeadapter.StoreNode{
-			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-			Value: []byte("10.0.0.1"),
-		}
-
-		storeAdapter.Create(node)
-
-		go list.Run(1 * time.Millisecond)
-
-		Eventually(list.GetAddresses).Should(HaveLen(1))
-
-		storeAdapter.Lock()
-		storeAdapter.ListErrInjector = fakestoreadapter.NewFakeStoreAdapterErrorInjector("", storeadapter.ErrorKeyNotFound)
-		storeAdapter.Unlock()
-
-		Consistently(list.GetAddresses).Should(HaveLen(1))
-	})
-
-	It("continues to run if the store times out", func() {
-		node := storeadapter.StoreNode{
-			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-			Value: []byte("10.0.0.1"),
-		}
-
-		storeAdapter.Create(node)
-
-		go list.Run(1 * time.Millisecond)
-
-		Eventually(list.GetAddresses).Should(HaveLen(1))
-
-		storeAdapter.Lock()
-		storeAdapter.ListErrInjector = fakestoreadapter.NewFakeStoreAdapterErrorInjector("", storeadapter.ErrorTimeout)
-		storeAdapter.Unlock()
-
-		Consistently(list.GetAddresses).Should(HaveLen(1))
-	})
-
-	It("excludes nodes with no value", func() {
-		node := storeadapter.StoreNode{
-			Key:   "/healthstatus/loggregator/z1/loggregator_z1",
-			Value: []byte{},
-		}
-
-		storeAdapter.Create(node)
-
-		go list.Run(1 * time.Millisecond)
-
-		Consistently(list.GetAddresses).Should(BeEmpty())
+			It("continues to run if the store times out", func() {
+				Consistently(list.GetAddresses).Should(HaveLen(1))
+			})
+		})
 	})
 })
