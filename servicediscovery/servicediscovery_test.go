@@ -26,7 +26,12 @@ var _ = Describe("ServiceDiscovery", func() {
 
 		workPool, err := workpool.NewWorkPool(10)
 		Expect(err).NotTo(HaveOccurred())
-		storeAdapter = etcdstoreadapter.NewETCDStoreAdapter(etcdRunner.NodeURLS(), workPool)
+		options := &etcdstoreadapter.ETCDOptions{
+			ClusterUrls: etcdRunner.NodeURLS(),
+		}
+		storeAdapter, err = etcdstoreadapter.New(options, workPool)
+		Expect(err).NotTo(HaveOccurred())
+
 		err = storeAdapter.Connect()
 		Expect(err).NotTo(HaveOccurred())
 

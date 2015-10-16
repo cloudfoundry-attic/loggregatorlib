@@ -44,7 +44,13 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 
 		workPool, err := workpool.NewWorkPool(10)
 		Expect(err).NotTo(HaveOccurred())
-		adapter = etcdstoreadapter.NewETCDStoreAdapter(etcdRunner.NodeURLS(), workPool)
+
+		options := &etcdstoreadapter.ETCDOptions{
+			ClusterUrls: etcdRunner.NodeURLS(),
+		}
+		adapter, err = etcdstoreadapter.New(options, workPool)
+		Expect(err).NotTo(HaveOccurred())
+
 		err = adapter.Connect()
 		Expect(err).NotTo(HaveOccurred())
 

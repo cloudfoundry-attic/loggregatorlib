@@ -15,10 +15,10 @@ type AgentListener interface {
 
 type agentListener struct {
 	*gosteno.Logger
-	host                 string
-	dataChannel          chan []byte
-	connection           net.PacketConn
-	contextName          string
+	host        string
+	dataChannel chan []byte
+	connection  net.PacketConn
+	contextName string
 	sync.RWMutex
 }
 
@@ -71,4 +71,3 @@ func (agentListener *agentListener) Stop() {
 	defer agentListener.Unlock()
 	agentListener.connection.Close()
 }
-
