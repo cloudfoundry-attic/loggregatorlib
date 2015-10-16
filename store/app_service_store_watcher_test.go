@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudfoundry/gunk/workpool"
 	"github.com/cloudfoundry/loggregatorlib/appservice"
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	. "github.com/cloudfoundry/loggregatorlib/store"
 	"github.com/cloudfoundry/loggregatorlib/store/cache"
 	"github.com/cloudfoundry/storeadapter"
@@ -55,7 +56,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		c := cache.NewAppServiceCache()
-		watcher, outAddChan, outRemoveChan = NewAppServiceStoreWatcher(adapter, c)
+		watcher, outAddChan, outRemoveChan = NewAppServiceStoreWatcher(adapter, c, loggertesthelper.Logger())
 
 		runWatcher = func() {
 			watcherRunComplete.Add(1)

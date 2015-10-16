@@ -46,45 +46,6 @@ var _ = Describe("loggregatorclient", func() {
 
 	})
 
-	Context("Metrics", func() {
-		var client loggregatorclient.LoggregatorClient
-		BeforeEach(func() {
-			client = loggregatorclient.NewLoggregatorClient(loggregatorAddress, gosteno.NewLogger("TestLogger"), 0)
-			expectedOutput := []byte("Important Testmessage")
-
-			client.Send(expectedOutput)
-
-			buffer := make([]byte, 4096)
-			udpListener.ReadFromUDP(buffer)
-
-			client.Stop()
-		})
-
-		It("emits over varz", func() {
-			metrics := client.Emit().Metrics
-			Expect(metrics).To(HaveLen(5))
-
-			for _, metric := range metrics {
-				Expect(metric.Tags).To(HaveKeyWithValue("loggregatorAddress", "127.0.0.1"))
-
-				switch metric.Name {
-				case "currentBufferCount":
-					Expect(metric.Value).To(Equal(uint64(0)))
-				case "sentMessageCount":
-					Expect(metric.Value).To(Equal(uint64(1)))
-				case "sentByteCount":
-					Expect(metric.Value).To(Equal(uint64(21)))
-				case "receivedMessageCount":
-					Expect(metric.Value).To(Equal(uint64(1)))
-				case "receivedByteCount":
-					Expect(metric.Value).To(Equal(uint64(21)))
-				default:
-					Fail("Got an invalid metric name: " + metric.Name)
-				}
-			}
-		})
-	})
-
 	It("doesn't send empty data", func() {
 		bufferSize := 4096
 		firstMessage := []byte("")

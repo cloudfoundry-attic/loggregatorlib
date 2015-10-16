@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	. "github.com/cloudfoundry/loggregatorlib/store"
 	"github.com/cloudfoundry/loggregatorlib/store/cache"
 	"github.com/cloudfoundry/storeadapter"
@@ -18,7 +19,7 @@ var _ = Describe("AppServiceStoreWatcherUnit", func() {
 
 		BeforeEach(func() {
 			adapter = newFSA()
-			watcher, _, _ := NewAppServiceStoreWatcher(adapter, cache.NewAppServiceCache())
+			watcher, _, _ := NewAppServiceStoreWatcher(adapter, cache.NewAppServiceCache(), loggertesthelper.Logger())
 
 			go watcher.Run()
 		})

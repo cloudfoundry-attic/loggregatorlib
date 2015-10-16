@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/cloudfoundry/loggregatorlib/appservice"
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent"
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
 
@@ -20,8 +18,6 @@ var etcdRunner *etcdstorerunner.ETCDClusterRunner
 
 func TestStore(t *testing.T) {
 	RegisterFailHandler(Fail)
-	cfcomponent.Logger = loggertesthelper.Logger()
-
 	RunSpecs(t, "Store Suite")
 }
 

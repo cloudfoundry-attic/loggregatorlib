@@ -5,7 +5,7 @@ import (
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/gogo/protobuf/proto"
-	//	"regexp"
+
 	"strings"
 	"time"
 )
