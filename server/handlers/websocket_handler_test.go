@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -72,8 +73,9 @@ var _ = Describe("WebsocketHandler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		ws.Close()
+
+		handlerDone, messagesChan := handlerDone, messagesChan
 		go func() {
-			handlerDone, messagesChan := handlerDone, messagesChan
 			for {
 				select {
 				case messagesChan <- []byte("message"):
