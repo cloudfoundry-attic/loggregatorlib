@@ -23,7 +23,7 @@ type Emitter interface {
 }
 
 type LoggregatorEmitter struct {
-	LoggregatorClient loggregatorclient.LoggregatorClient
+	LoggregatorClient loggregatorclient.Client
 	sn                string
 	sId               string
 	sharedSecret      string
@@ -99,12 +99,18 @@ func NewEmitter(loggregatorServer, sourceName, sourceId, sharedSecret string, lo
 		logger = gosteno.NewLogger("loggregatorlib.emitter")
 	}
 
-	e := &LoggregatorEmitter{sharedSecret: sharedSecret}
+	client, err := loggregatorclient.NewUDPClient(logger, loggregatorServer, loggregatorclient.DefaultBufferSize)
+	if err != nil {
+		return nil, err
+	}
 
-	e.sn = sourceName
-	e.logger = logger
-	e.LoggregatorClient = loggregatorclient.NewLoggregatorClient(loggregatorServer, logger, loggregatorclient.DefaultBufferSize)
-	e.sId = sourceId
+	e := &LoggregatorEmitter{
+		sharedSecret:      sharedSecret,
+		sn:                sourceName,
+		sId:               sourceId,
+		LoggregatorClient: client,
+		logger:            logger,
+	}
 
 	e.logger.Debugf("Created new loggregator emitter: %#v", e)
 	return e, nil

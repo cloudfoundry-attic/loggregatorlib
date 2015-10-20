@@ -12,9 +12,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("loggregatorclient", func() {
+var _ = Describe("Udp Client", func() {
 	var (
-		loggregatorClient  loggregatorclient.LoggregatorClient
+		client             loggregatorclient.Client
 		udpListener        *net.UDPConn
 		loggregatorAddress string
 	)
@@ -22,21 +22,23 @@ var _ = Describe("loggregatorclient", func() {
 	BeforeEach(func() {
 		port := 9875 + config.GinkgoConfig.ParallelNode
 		loggregatorAddress = net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
-		loggregatorClient = loggregatorclient.NewLoggregatorClient(loggregatorAddress, gosteno.NewLogger("TestLogger"), 0)
+		var err error
+		client, err = loggregatorclient.NewUDPClient(gosteno.NewLogger("TestLogger"), loggregatorAddress, 0)
+		Expect(err).NotTo(HaveOccurred())
 
 		udpAddr, _ := net.ResolveUDPAddr("udp", loggregatorAddress)
 		udpListener, _ = net.ListenUDP("udp", udpAddr)
 	})
 
 	AfterEach(func() {
-		loggregatorClient.Stop()
+		client.Stop()
 		udpListener.Close()
 	})
 
 	It("sends log messages to loggregator", func() {
 		expectedOutput := []byte("Important Testmessage")
 
-		loggregatorClient.Send(expectedOutput)
+		client.Send(expectedOutput)
 
 		buffer := make([]byte, 4096)
 		readCount, _, _ := udpListener.ReadFromUDP(buffer)
@@ -51,8 +53,8 @@ var _ = Describe("loggregatorclient", func() {
 		firstMessage := []byte("")
 		secondMessage := []byte("hi")
 
-		loggregatorClient.Send(firstMessage)
-		loggregatorClient.Send(secondMessage)
+		client.Send(firstMessage)
+		client.Send(secondMessage)
 
 		buffer := make([]byte, bufferSize)
 		readCount, _, _ := udpListener.ReadFromUDP(buffer)
