@@ -26,8 +26,11 @@ var _ = Describe("Udp Client", func() {
 		client, err = loggregatorclient.NewUDPClient(gosteno.NewLogger("TestLogger"), loggregatorAddress, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		udpAddr, _ := net.ResolveUDPAddr("udp", loggregatorAddress)
-		udpListener, _ = net.ListenUDP("udp", udpAddr)
+		udpAddr, err := net.ResolveUDPAddr("udp", loggregatorAddress)
+		Expect(err).NotTo(HaveOccurred())
+
+		udpListener, err = net.ListenUDP("udp", udpAddr)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -41,11 +44,11 @@ var _ = Describe("Udp Client", func() {
 		client.Send(expectedOutput)
 
 		buffer := make([]byte, 4096)
-		readCount, _, _ := udpListener.ReadFromUDP(buffer)
+		readCount, _, err := udpListener.ReadFromUDP(buffer)
+		Expect(err).NotTo(HaveOccurred())
 
 		received := string(buffer[:readCount])
 		Expect(received).To(Equal(string(expectedOutput)))
-
 	})
 
 	It("doesn't send empty data", func() {
@@ -57,7 +60,8 @@ var _ = Describe("Udp Client", func() {
 		client.Send(secondMessage)
 
 		buffer := make([]byte, bufferSize)
-		readCount, _, _ := udpListener.ReadFromUDP(buffer)
+		readCount, _, err := udpListener.ReadFromUDP(buffer)
+		Expect(err).NotTo(HaveOccurred())
 
 		received := string(buffer[:readCount])
 		Expect(received).To(Equal(string(secondMessage)))
