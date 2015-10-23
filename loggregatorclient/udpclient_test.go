@@ -2,37 +2,55 @@ package loggregatorclient_test
 
 import (
 	"net"
-	"strconv"
 
 	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Udp Client", func() {
+var _ = Describe("UDP Client", func() {
 	var (
-		client             loggregatorclient.Client
-		udpListener        *net.UDPConn
-		loggregatorAddress string
+		client      loggregatorclient.Client
+		udpListener *net.UDPConn
 	)
 
 	BeforeEach(func() {
-		port := 9875 + config.GinkgoConfig.ParallelNode
-		loggregatorAddress = net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
-		var err error
-		client, err = loggregatorclient.NewUDPClient(gosteno.NewLogger("TestLogger"), loggregatorAddress, 0)
-		Expect(err).NotTo(HaveOccurred())
-
-		udpAddr, _ := net.ResolveUDPAddr("udp", loggregatorAddress)
+		udpAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:0")
 		udpListener, _ = net.ListenUDP("udp", udpAddr)
+
+		var err error
+		client, err = loggregatorclient.NewUDPClient(gosteno.NewLogger("TestLogger"), udpListener.LocalAddr().String(), 0)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		client.Stop()
 		udpListener.Close()
+	})
+
+	Describe("NewUDPClient", func() {
+		Context("when the address is invalid", func() {
+			It("returns an error", func() {
+				_, err := loggregatorclient.NewUDPClient(gosteno.NewLogger("TestLogger"), "127.0.0.1:abc", 0)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("udpClient", func() {
+		Describe("Scheme", func() {
+			It("returns tls", func() {
+				Expect(client.Scheme()).To(Equal("udp"))
+			})
+		})
+
+		Describe("Address", func() {
+			It("returns the address", func() {
+				Expect(client.Address()).To(Equal(udpListener.LocalAddr().String()))
+			})
+		})
 	})
 
 	It("sends log messages to loggregator", func() {
@@ -61,5 +79,17 @@ var _ = Describe("Udp Client", func() {
 
 		received := string(buffer[:readCount])
 		Expect(received).To(Equal(string(secondMessage)))
+	})
+
+	Describe("Stop", func() {
+		It("can be called multiple times", func() {
+			done := make(chan struct{})
+			go func() {
+				client.Stop()
+				client.Stop()
+				close(done)
+			}()
+			Eventually(done).Should(BeClosed())
+		})
 	})
 })
