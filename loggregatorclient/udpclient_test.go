@@ -27,7 +27,7 @@ var _ = Describe("UDP Client", func() {
 	})
 
 	AfterEach(func() {
-		client.Stop()
+		client.Close()
 		udpListener.Close()
 	})
 
@@ -57,7 +57,8 @@ var _ = Describe("UDP Client", func() {
 	It("sends log messages to loggregator", func() {
 		expectedOutput := []byte("Important Testmessage")
 
-		client.Send(expectedOutput)
+		_, err := client.Write(expectedOutput)
+		Expect(err).NotTo(HaveOccurred())
 
 		buffer := make([]byte, 4096)
 		readCount, _, err := udpListener.ReadFromUDP(buffer)
@@ -72,8 +73,10 @@ var _ = Describe("UDP Client", func() {
 		firstMessage := []byte("")
 		secondMessage := []byte("hi")
 
-		client.Send(firstMessage)
-		client.Send(secondMessage)
+		_, err := client.Write(firstMessage)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = client.Write(secondMessage)
+		Expect(err).NotTo(HaveOccurred())
 
 		buffer := make([]byte, bufferSize)
 		readCount, _, err := udpListener.ReadFromUDP(buffer)
@@ -83,12 +86,12 @@ var _ = Describe("UDP Client", func() {
 		Expect(received).To(Equal(string(secondMessage)))
 	})
 
-	Describe("Stop", func() {
+	Describe("Close", func() {
 		It("can be called multiple times", func() {
 			done := make(chan struct{})
 			go func() {
-				client.Stop()
-				client.Stop()
+				client.Close()
+				client.Close()
 				close(done)
 			}()
 			Eventually(done).Should(BeClosed())

@@ -53,7 +53,7 @@ var _ = Describe("TLS Client", func() {
 
 	AfterEach(func() {
 		tlsListener.Close()
-		client.Stop()
+		client.Close()
 	})
 
 	Describe("NewTLSClient", func() {
@@ -86,7 +86,7 @@ var _ = Describe("TLS Client", func() {
 		})
 	})
 
-	Describe("Sending data", func() {
+	Describe("Writing data", func() {
 		var conn net.Conn
 
 		JustBeforeEach(func() {
@@ -95,7 +95,8 @@ var _ = Describe("TLS Client", func() {
 		})
 
 		It("sends data", func() {
-			client.Send([]byte("abc"))
+			_, err := client.Write([]byte("abc"))
+			Expect(err).NotTo(HaveOccurred())
 			bytes := make([]byte, 10)
 			n, err := conn.Read(bytes)
 			Expect(err).NotTo(HaveOccurred())
@@ -104,10 +105,12 @@ var _ = Describe("TLS Client", func() {
 
 		Context("when there is no data", func() {
 			It("does not send", func() {
-				client.Send([]byte(""))
+				_, err := client.Write([]byte(""))
+				Expect(err).NotTo(HaveOccurred())
+
 				bytes := make([]byte, 10)
 				conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
-				_, err := conn.Read(bytes)
+				_, err = conn.Read(bytes)
 				Expect(err).To(HaveOccurred())
 				opErr := err.(*net.OpError)
 				Expect(opErr.Timeout()).To(BeTrue())
@@ -116,8 +119,9 @@ var _ = Describe("TLS Client", func() {
 
 		Context("when the connection is closed", func() {
 			It("reconnects and sends", func() {
-				client.Stop()
-				client.Send([]byte("abc"))
+				client.Close()
+				_, err := client.Write([]byte("abc"))
+				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(connChan).Should(Receive(&conn))
 				Expect(conn).NotTo(BeNil())
@@ -129,12 +133,12 @@ var _ = Describe("TLS Client", func() {
 		})
 	})
 
-	Describe("Stop", func() {
+	Describe("Close", func() {
 		It("can be called multiple times", func() {
 			done := make(chan struct{})
 			go func() {
-				client.Stop()
-				client.Stop()
+				client.Close()
+				client.Close()
 				close(done)
 			}()
 			Eventually(done).Should(BeClosed())
