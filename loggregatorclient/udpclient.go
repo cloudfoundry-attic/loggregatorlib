@@ -11,8 +11,8 @@ const DefaultBufferSize = 4096
 type Client interface {
 	Scheme() string
 	Address() string
-	Send([]byte)
-	Stop()
+	Write([]byte) (int, error)
+	Close() error
 }
 
 type udpClient struct {
@@ -48,20 +48,21 @@ func (c *udpClient) Address() string {
 	return c.addr.String()
 }
 
-func (c *udpClient) Stop() {
-	c.conn.Close()
+func (c *udpClient) Close() error {
+	return c.conn.Close()
 }
 
-func (c *udpClient) Send(data []byte) {
+func (c *udpClient) Write(data []byte) (int, error) {
 	if len(data) == 0 {
-		c.logger.Debugf("Skipped writing of 0 byte message to %s", c.Address())
-		return
+		return 0, nil
 	}
 
 	writeCount, err := c.conn.WriteTo(data, c.addr)
 	if err != nil {
 		c.logger.Errorf("Writing to loggregator %s failed %s", c.Address(), err)
-		return
+		return writeCount, err
 	}
 	c.logger.Debugf("Wrote %d bytes to %s", writeCount, c.Address())
+
+	return writeCount, err
 }

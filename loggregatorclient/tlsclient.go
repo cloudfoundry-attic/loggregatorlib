@@ -36,29 +36,33 @@ func (c *tlsClient) Address() string {
 	return c.address
 }
 
-func (c *tlsClient) Stop() {
+func (c *tlsClient) Close() error {
+	var err error
 	c.lock.Lock()
 	if c.conn != nil {
-		c.conn.Close()
+		err = c.conn.Close()
 		c.conn = nil
 	}
 	c.lock.Unlock()
+
+	return err
 }
 
-func (c *tlsClient) Send(data []byte) {
+func (c *tlsClient) Write(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, nil
+	}
+
 	c.lock.Lock()
 	if c.conn == nil {
-		if c.connect() != nil {
-			return
+		if err := c.connect(); err != nil {
+			return 0, err
 		}
 	}
 	conn := c.conn
 	c.lock.Unlock()
 
-	_, err := conn.Write(data)
-	if err != nil {
-		c.Stop()
-	}
+	return conn.Write(data)
 }
 
 func (c *tlsClient) connect() error {
