@@ -8,6 +8,7 @@ import (
 
 const DefaultBufferSize = 4096
 
+//go:generate counterfeiter -o fakeclient/fake_client.go . Client
 type Client interface {
 	Scheme() string
 	Address() string

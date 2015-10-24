@@ -77,7 +77,7 @@ func (e *LoggregatorEmitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 				e.logger.Errorf("Error marshalling message: %s", err)
 				return
 			}
-			e.LoggregatorClient.Send(marshalledLogMessage)
+			e.LoggregatorClient.Write(marshalledLogMessage)
 		} else {
 			logEnvelope, err := e.newLogEnvelope(*logMessage.AppId, logMessage)
 			if err != nil {
@@ -89,7 +89,7 @@ func (e *LoggregatorEmitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 				e.logger.Errorf("Error marshalling envelope: %s", err)
 				return
 			}
-			e.LoggregatorClient.Send(marshalledLogEnvelope)
+			e.LoggregatorClient.Write(marshalledLogEnvelope)
 		}
 	}
 }
