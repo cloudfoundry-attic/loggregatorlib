@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/loggregatorlib/emitter"
-	"github.com/cloudfoundry/loggregatorlib/loggregatorclient/fake"
+	"github.com/cloudfoundry/loggregatorlib/loggregatorclient/fakeclient"
 )
 
 const (
@@ -42,20 +42,13 @@ func messageWithNewlines() string {
 }
 
 func BenchmarkLogEnvelopeEmit(b *testing.B) {
-	received := make(chan *[]byte, 1)
 	e, _ := emitter.NewEmitter("localhost:3457", "ROUTER", "42", "secret", nil)
-	e.LoggregatorClient = &fake.FakeLoggregatorClient{Received: received}
+	e.LoggregatorClient = &fakeclient.FakeClient{}
 
-	testEmitHelper(b, e, received, true)
+	testEmitHelper(b, e, true)
 }
 
-func testEmitHelper(b *testing.B, e emitter.Emitter, received chan *[]byte, isEnvelope bool) {
-	go func() {
-		for {
-			<-received
-		}
-	}()
-
+func testEmitHelper(b *testing.B, e emitter.Emitter, isEnvelope bool) {
 	for _, fixture := range messageFixtures {
 		startTime := time.Now().UnixNano()
 
