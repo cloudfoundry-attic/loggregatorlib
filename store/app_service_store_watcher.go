@@ -15,6 +15,8 @@ type AppServiceStoreWatcher struct {
 	outAddChan, outRemoveChan chan<- appservice.AppService
 	cache                     cache.AppServiceWatcherCache
 	logger                    *gosteno.Logger
+
+	done chan struct{}
 }
 
 func NewAppServiceStoreWatcher(adapter storeadapter.StoreAdapter, cache cache.AppServiceWatcherCache, logger *gosteno.Logger) (*AppServiceStoreWatcher, <-chan appservice.AppService, <-chan appservice.AppService) {
@@ -26,6 +28,7 @@ func NewAppServiceStoreWatcher(adapter storeadapter.StoreAdapter, cache cache.Ap
 		outRemoveChan: outRemoveChan,
 		cache:         cache,
 		logger:        logger,
+		done:          make(chan struct{}),
 	}, outAddChan, outRemoveChan
 }
 
@@ -59,24 +62,31 @@ func (w *AppServiceStoreWatcher) Exists(appService appservice.AppService) bool {
 	return w.cache.Exists(appService)
 }
 
+func (w *AppServiceStoreWatcher) Stop() {
+	close(w.done)
+}
+
 func (w *AppServiceStoreWatcher) Run() {
 	defer func() {
 		close(w.outAddChan)
 		close(w.outRemoveChan)
 	}()
 
-	events, _, errChan := w.adapter.Watch("/loggregator/services")
+	events, stopChan, errChan := w.adapter.Watch("/loggregator/services")
 
 	w.registerExistingServicesFromStore()
 	for {
 		for {
 			select {
+			case <-w.done:
+				close(stopChan)
+				return
 			case err, ok := <-errChan:
 				if !ok {
 					return
 				}
 				w.logger.Errorf("AppStoreWatcher: Got error while waiting for ETCD events: %s", err.Error())
-				events, _, errChan = w.adapter.Watch("/loggregator/services")
+				events, stopChan, errChan = w.adapter.Watch("/loggregator/services")
 			case event, ok := <-events:
 				if !ok {
 					return
