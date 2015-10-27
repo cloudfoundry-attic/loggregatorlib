@@ -261,7 +261,11 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 				Expect(appService).To(Equal(app2Service2))
 
 				adapter.UpdateDirTTL("/loggregator/services/app-2", 1)
-				Eventually(outAddChan).Should(BeEmpty())
+				Eventually(func() error {
+					_, err := adapter.Get(key(app2Service2))
+					return err
+				}, 2).Should(Equal(storeadapter.ErrorKeyNotFound))
+
 				appServices := drainOutgoingChannel(outRemoveChan, 2)
 
 				Expect(appServices).To(ConsistOf(app2Service1, app2Service2))
@@ -283,7 +287,7 @@ func drainOutgoingChannel(c <-chan appservice.AppService, count int) []appservic
 	appServices := []appservice.AppService{}
 	for i := 0; i < count; i++ {
 		var appService appservice.AppService
-		Eventually(c, 2).Should(Receive(&appService), fmt.Sprintf("Failed to drain outgoing chan with expected number of messages; received %d but expected %d.", i, count))
+		Eventually(c).Should(Receive(&appService), fmt.Sprintf("Failed to drain outgoing chan with expected number of messages; received %d but expected %d.", i, count))
 		appServices = append(appServices, appService)
 	}
 
