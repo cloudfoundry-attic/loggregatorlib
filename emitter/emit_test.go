@@ -1,10 +1,11 @@
 package emitter_test
 
 import (
+	"net"
 	"strings"
 
 	. "github.com/cloudfoundry/loggregatorlib/emitter"
-	"github.com/cloudfoundry/loggregatorlib/loggregatorclient/fakeclient"
+	"github.com/cloudfoundry/loggregatorlib/emitter/fakes"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/cloudfoundry/loggregatorlib/logmessage/testhelpers"
 	"github.com/gogo/protobuf/proto"
@@ -16,22 +17,20 @@ import (
 var _ = Describe("Testing with Ginkgo", func() {
 	var (
 		emitter *LoggregatorEmitter
-		client  *fakeclient.FakeClient
+		conn    *fakes.FakePacketConn
 	)
 
 	BeforeEach(func() {
+		conn = &fakes.FakePacketConn{}
+
 		var err error
-		emitter, err = NewEmitter("localhost:3456", "ROUTER", "42", "secret", nil)
+		emitter, err = New("127.0.0.1:3456", "ROUTER", "42", "secret", conn, nil)
 		Expect(err).ToNot(HaveOccurred())
-
-		client = &fakeclient.FakeClient{}
-		emitter.LoggregatorClient = client
-
 	})
 
 	It("should emit stdout", func() {
 		emitter.Emit("appid", "foo")
-		receivedMessage := extractLogMessage(client.WriteArgsForCall(0))
+		receivedMessage := extractLogMessage(conn.WriteToArgsForCall(0))
 
 		Expect(receivedMessage.GetMessage()).To(Equal([]byte("foo")))
 		Expect(receivedMessage.GetAppId()).To(Equal("appid"))
@@ -41,7 +40,7 @@ var _ = Describe("Testing with Ginkgo", func() {
 
 	It("should emit stderr", func() {
 		emitter.EmitError("appid", "foo")
-		receivedMessage := extractLogMessage(client.WriteArgsForCall(0))
+		receivedMessage := extractLogMessage(conn.WriteToArgsForCall(0))
 
 		Expect(receivedMessage.GetMessage()).To(Equal([]byte("foo")))
 		Expect(receivedMessage.GetAppId()).To(Equal("appid"))
@@ -54,7 +53,7 @@ var _ = Describe("Testing with Ginkgo", func() {
 		logMessage.SourceId = proto.String("src_id")
 
 		emitter.EmitLogMessage(logMessage)
-		receivedMessage := extractLogMessage(client.WriteArgsForCall(0))
+		receivedMessage := extractLogMessage(conn.WriteToArgsForCall(0))
 
 		Expect(receivedMessage.GetMessage()).To(Equal([]byte("test_msg")))
 		Expect(receivedMessage.GetAppId()).To(Equal("test_app_id"))
@@ -67,7 +66,7 @@ var _ = Describe("Testing with Ginkgo", func() {
 
 		emitter.EmitLogMessage(logMessage)
 
-		receivedMessage := extractLogMessage(client.WriteArgsForCall(0))
+		receivedMessage := extractLogMessage(conn.WriteToArgsForCall(0))
 		receivedMessageText := receivedMessage.GetMessage()
 
 		truncatedOffset := len(receivedMessageText) - len(TRUNCATED_BYTES)
@@ -82,17 +81,17 @@ var _ = Describe("Testing with Ginkgo", func() {
 		logMessage := testhelpers.NewLogMessage(message, "test_app_id")
 
 		emitter.EmitLogMessage(logMessage)
-		Expect(client.WriteCallCount()).To(Equal(4))
+		Expect(conn.WriteToCallCount()).To(Equal(4))
 
 		for i, expectedMessage := range []string{"message1", "message2", "message3", "message4"} {
-			receivedMessage := extractLogMessage(client.WriteArgsForCall(i))
+			receivedMessage := extractLogMessage(conn.WriteToArgsForCall(i))
 			Expect(receivedMessage.GetMessage()).To(Equal([]byte(expectedMessage)))
 		}
 	})
 
 	It("should build the log envelope correctly", func() {
 		emitter.Emit("appid", "foo")
-		receivedEnvelope := extractLogEnvelope(client.WriteArgsForCall(0))
+		receivedEnvelope := extractLogEnvelope(conn.WriteToArgsForCall(0))
 
 		Expect(receivedEnvelope.GetLogMessage().GetMessage()).To(Equal([]byte("foo")))
 		Expect(receivedEnvelope.GetLogMessage().GetAppId()).To(Equal("appid"))
@@ -102,34 +101,59 @@ var _ = Describe("Testing with Ginkgo", func() {
 
 	It("should sign the log message correctly", func() {
 		emitter.Emit("appid", "foo")
-		receivedEnvelope := extractLogEnvelope(client.WriteArgsForCall(0))
+		receivedEnvelope := extractLogEnvelope(conn.WriteToArgsForCall(0))
 		Expect(receivedEnvelope.VerifySignature("secret")).To(BeTrue(), "Expected envelope to be signed with the correct secret key")
-	})
-
-	It("source name is set if mapping is unknown", func() {
-		emitter, err := NewEmitter("localhost:3456", "XYZ", "42", "secret", nil)
-		Expect(err).ToNot(HaveOccurred())
-		client := &fakeclient.FakeClient{}
-		emitter.LoggregatorClient = client
-
-		emitter.Emit("test_app_id", "test_msg")
-		receivedMessage := extractLogMessage(client.WriteArgsForCall(0))
-
-		Expect(receivedMessage.GetSourceName()).To(Equal("XYZ"))
 	})
 
 	Context("when missing an app id", func() {
 		It("should not emit", func() {
 			emitter.Emit("", "foo")
-			Expect(client.WriteCallCount()).To(Equal(0))
+			Expect(conn.WriteToCallCount()).To(Equal(0))
 
 			emitter.Emit("    ", "foo")
-			Expect(client.WriteCallCount()).To(Equal(0))
+			Expect(conn.WriteToCallCount()).To(Equal(0))
+		})
+	})
+
+	Context("with a server", func() {
+		var udpListener *net.UDPConn
+
+		BeforeEach(func() {
+			udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+			Expect(err).NotTo(HaveOccurred())
+			udpListener, err = net.ListenUDP("udp", udpAddr)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			udpListener.Close()
+		})
+
+		It("sends the messages", func() {
+			var err error
+			emitter, err = NewEmitter(udpListener.LocalAddr().String(), "ROUTER", "42", "secret", nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			emitter.Emit("appid", "foo")
+
+			buffer := make([]byte, 4096)
+			readCount, _, err := udpListener.ReadFromUDP(buffer)
+			Expect(err).NotTo(HaveOccurred())
+
+			var env logmessage.LogEnvelope
+			err = proto.Unmarshal(buffer[:readCount], &env)
+			Expect(err).NotTo(HaveOccurred())
+
+			msg := env.GetLogMessage()
+			Expect(msg.GetMessage()).To(Equal([]byte("foo")))
+			Expect(msg.GetAppId()).To(Equal("appid"))
+			Expect(msg.GetSourceId()).To(Equal("42"))
+			Expect(msg.GetMessageType()).To(Equal(logmessage.LogMessage_OUT))
 		})
 	})
 })
 
-func extractLogEnvelope(data []byte) *logmessage.LogEnvelope {
+func extractLogEnvelope(data []byte, addr net.Addr) *logmessage.LogEnvelope {
 	receivedEnvelope := &logmessage.LogEnvelope{}
 
 	err := proto.Unmarshal(data, receivedEnvelope)
@@ -138,8 +162,8 @@ func extractLogEnvelope(data []byte) *logmessage.LogEnvelope {
 	return receivedEnvelope
 }
 
-func extractLogMessage(data []byte) *logmessage.LogMessage {
-	envelope := extractLogEnvelope(data)
+func extractLogMessage(data []byte, addr net.Addr) *logmessage.LogMessage {
+	envelope := extractLogEnvelope(data, addr)
 
 	return envelope.GetLogMessage()
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/loggregatorlib/emitter"
-	"github.com/cloudfoundry/loggregatorlib/loggregatorclient/fakeclient"
+	"github.com/cloudfoundry/loggregatorlib/emitter/fakes"
 )
 
 const (
@@ -42,8 +42,8 @@ func messageWithNewlines() string {
 }
 
 func BenchmarkLogEnvelopeEmit(b *testing.B) {
-	e, _ := emitter.NewEmitter("localhost:3457", "ROUTER", "42", "secret", nil)
-	e.LoggregatorClient = &fakeclient.FakeClient{}
+	conn := &fakes.FakePacketConn{}
+	e, _ := emitter.New("127.0.0.1:3456", "ROUTER", "42", "secret", conn, nil)
 
 	testEmitHelper(b, e, true)
 }

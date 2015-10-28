@@ -1,8 +1,9 @@
 package emitter
 
 import (
+	"net"
+
 	"github.com/cloudfoundry/gosteno"
-	"github.com/cloudfoundry/loggregatorlib/loggregatorclient"
 	"github.com/cloudfoundry/loggregatorlib/logmessage"
 	"github.com/gogo/protobuf/proto"
 
@@ -23,11 +24,12 @@ type Emitter interface {
 }
 
 type LoggregatorEmitter struct {
-	LoggregatorClient loggregatorclient.Client
-	sn                string
-	sId               string
-	sharedSecret      string
-	logger            *gosteno.Logger
+	conn         net.PacketConn
+	addr         *net.UDPAddr
+	sn           string
+	sId          string
+	sharedSecret string
+	logger       *gosteno.Logger
 }
 
 func isEmpty(s string) bool {
@@ -77,7 +79,7 @@ func (e *LoggregatorEmitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 				e.logger.Errorf("Error marshalling message: %s", err)
 				return
 			}
-			e.LoggregatorClient.Write(marshalledLogMessage)
+			e.write(marshalledLogMessage)
 		} else {
 			logEnvelope, err := e.newLogEnvelope(*logMessage.AppId, logMessage)
 			if err != nil {
@@ -89,31 +91,56 @@ func (e *LoggregatorEmitter) EmitLogMessage(logMessage *logmessage.LogMessage) {
 				e.logger.Errorf("Error marshalling envelope: %s", err)
 				return
 			}
-			e.LoggregatorClient.Write(marshalledLogEnvelope)
+			e.write(marshalledLogEnvelope)
 		}
 	}
 }
 
 func NewEmitter(loggregatorServer, sourceName, sourceId, sharedSecret string, logger *gosteno.Logger) (*LoggregatorEmitter, error) {
+	conn, err := net.ListenPacket("udp", "")
+	if err != nil {
+		return nil, err
+	}
+
+	return New(loggregatorServer, sourceName, sourceId, sharedSecret, conn, logger)
+}
+
+func New(loggregatorServer, sourceName, sourceId, sharedSecret string, conn net.PacketConn, logger *gosteno.Logger) (*LoggregatorEmitter, error) {
 	if logger == nil {
 		logger = gosteno.NewLogger("loggregatorlib.emitter")
 	}
 
-	client, err := loggregatorclient.NewUDPClient(logger, loggregatorServer, loggregatorclient.DefaultBufferSize)
+	addr, err := net.ResolveUDPAddr("udp", loggregatorServer)
 	if err != nil {
 		return nil, err
 	}
 
 	e := &LoggregatorEmitter{
-		sharedSecret:      sharedSecret,
-		sn:                sourceName,
-		sId:               sourceId,
-		LoggregatorClient: client,
-		logger:            logger,
+		sharedSecret: sharedSecret,
+		sn:           sourceName,
+		sId:          sourceId,
+		conn:         conn,
+		addr:         addr,
+		logger:       logger,
 	}
 
 	e.logger.Debugf("Created new loggregator emitter: %#v", e)
 	return e, nil
+}
+
+func (e *LoggregatorEmitter) write(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, nil
+	}
+
+	writeCount, err := e.conn.WriteTo(data, e.addr)
+	if err != nil {
+		e.logger.Errorf("Write to %s failed %s", e.addr.String(), err.Error())
+		return writeCount, err
+	}
+	e.logger.Debugf("Wrote %d bytes to %s", writeCount, e.addr.String())
+
+	return writeCount, err
 }
 
 func (e *LoggregatorEmitter) newLogMessage(appId, message string, mt logmessage.LogMessage_MessageType) *logmessage.LogMessage {
