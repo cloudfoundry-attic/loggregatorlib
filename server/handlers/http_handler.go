@@ -17,7 +17,7 @@ func NewHttpHandler(m <-chan []byte, logger *gosteno.Logger) *httpHandler {
 }
 
 func (h *httpHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	h.logger.Debugf("http handler: ServeHTTP entered with request %v", r)
+	h.logger.Debugf("http handler: ServeHTTP entered with request %v", r.URL)
 	defer h.logger.Debugf("http handler: ServeHTTP exited")
 
 	mp := multipart.NewWriter(rw)

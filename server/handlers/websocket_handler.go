@@ -20,7 +20,7 @@ func NewWebsocketHandler(m <-chan []byte, keepAlive time.Duration, logger *goste
 }
 
 func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	h.logger.Debugf("websocket handler: ServeHTTP entered with request %v", r)
+	h.logger.Debugf("websocket handler: ServeHTTP entered with request %v", r.URL)
 
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(*http.Request) bool { return true },
@@ -28,7 +28,7 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	ws, err := upgrader.Upgrade(rw, r, nil)
 	if err != nil {
-		h.logger.Debugf("websocket handler: Not a websocket handshake: %s", err.Error())
+		h.logger.Errorf("websocket handler: Not a websocket handshake: %s", err.Error())
 		return
 	}
 	defer ws.Close()
@@ -76,7 +76,7 @@ func (h *websocketHandler) runWebsocketUntilClosed(ws *websocket.Conn) (closeCod
 			}
 			err := ws.WriteMessage(websocket.BinaryMessage, message)
 			if err != nil {
-				h.logger.Debugf("websocket handler: Error writing to websocket: %s", err.Error())
+				h.logger.Errorf("websocket handler: Error writing to websocket: %s", err.Error())
 				return
 			}
 		}

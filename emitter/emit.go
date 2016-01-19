@@ -26,8 +26,8 @@ type Emitter interface {
 type LoggregatorEmitter struct {
 	conn         net.PacketConn
 	addr         *net.UDPAddr
-	sn           string
-	sId          string
+	sourceName   string
+	sourceID     string
 	sharedSecret string
 	logger       *gosteno.Logger
 }
@@ -55,7 +55,7 @@ func (e *LoggregatorEmitter) emit(appid, message string, messageType logmessage.
 		return
 	}
 	logMessage := e.newLogMessage(appid, message, messageType)
-	e.logger.Debugf("Logging message from %s of type %s with appid %s and with data %s", *logMessage.SourceName, logMessage.MessageType, *logMessage.AppId, string(logMessage.Message))
+	e.logger.Debugf("Logging message from %s of type %s with appid %s", *logMessage.SourceName, logMessage.MessageType, *logMessage.AppId)
 
 	e.EmitLogMessage(logMessage)
 }
@@ -117,14 +117,14 @@ func New(loggregatorServer, sourceName, sourceId, sharedSecret string, conn net.
 
 	e := &LoggregatorEmitter{
 		sharedSecret: sharedSecret,
-		sn:           sourceName,
-		sId:          sourceId,
+		sourceName:   sourceName,
+		sourceID:     sourceId,
 		conn:         conn,
 		addr:         addr,
 		logger:       logger,
 	}
 
-	e.logger.Debugf("Created new loggregator emitter: %#v", e)
+	e.logger.Debugf("Created new loggregator emitter with sourceName: %s and sourceID: %s", e.sourceName, e.sourceID)
 	return e, nil
 }
 
@@ -150,9 +150,9 @@ func (e *LoggregatorEmitter) newLogMessage(appId, message string, mt logmessage.
 		Message:     []byte(message),
 		AppId:       proto.String(appId),
 		MessageType: &mt,
-		SourceId:    &e.sId,
+		SourceId:    &e.sourceID,
 		Timestamp:   proto.Int64(currentTime.UnixNano()),
-		SourceName:  &e.sn,
+		SourceName:  &e.sourceName,
 	}
 }
 
