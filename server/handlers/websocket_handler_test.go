@@ -59,12 +59,14 @@ var _ = Describe("WebsocketHandler", func() {
 		}
 		go ws.ReadMessage()
 		close(messagesChan)
+		Eventually(handlerDone).Should(BeClosed())
 	})
 
 	It("should err when websocket upgrade fails", func() {
 		resp, err := http.Get(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+		Eventually(handlerDone).Should(BeClosed())
 
 	})
 
@@ -116,6 +118,7 @@ var _ = Describe("WebsocketHandler", func() {
 
 		Consistently(handlerDone, 200*time.Millisecond).ShouldNot(BeClosed())
 		close(messagesChan)
+		Eventually(handlerDone).Should(BeClosed())
 	})
 
 	It("should continue when the client sends old style keepalives", func() {
@@ -132,6 +135,7 @@ var _ = Describe("WebsocketHandler", func() {
 
 		Consistently(handlerDone, 200*time.Millisecond).ShouldNot(BeClosed())
 		close(messagesChan)
+		Eventually(handlerDone).Should(BeClosed())
 	})
 
 	It("should send a closing message", func() {
@@ -140,6 +144,7 @@ var _ = Describe("WebsocketHandler", func() {
 		close(messagesChan)
 		_, _, err = ws.ReadMessage()
 		Expect(err.Error()).To(ContainSubstring("websocket: close 1000"))
+		Eventually(handlerDone).Should(BeClosed())
 	})
 
 	Context("when the KeepAlive expires", func() {
@@ -152,6 +157,7 @@ var _ = Describe("WebsocketHandler", func() {
 			_, _, err = ws.ReadMessage()
 			Expect(err.Error()).To(ContainSubstring("1008"))
 			Expect(err.Error()).To(ContainSubstring("Client did not respond to ping before keep-alive timeout expired."))
+			Eventually(handlerDone).Should(BeClosed())
 		})
 
 		It("logs an appropriate message", func() {
@@ -162,6 +168,7 @@ var _ = Describe("WebsocketHandler", func() {
 
 			expectedMessage := fmt.Sprintf("websocket handler: Connection from %s timed out", ws.LocalAddr().String())
 			Expect(loggertesthelper.TestLoggerSink.LogContents()).To(ContainSubstring(expectedMessage))
+			Eventually(handlerDone).Should(BeClosed())
 		})
 	})
 
@@ -174,6 +181,7 @@ var _ = Describe("WebsocketHandler", func() {
 
 			expectedMessage := fmt.Sprintf("websocket handler: connection from %s was closed", ws.LocalAddr().String())
 			Eventually(loggertesthelper.TestLoggerSink.LogContents).Should(ContainSubstring(expectedMessage))
+			Eventually(handlerDone).Should(BeClosed())
 		})
 	})
 })
