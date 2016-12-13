@@ -141,7 +141,8 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 				It("adds that service to the outgoing add channel", func() {
 					app2Service2 := appservice.AppService{AppId: APP2_ID, Url: "syslog://new.example.com:12345"}
 					_, err := adapter.Get(key(app2Service2))
-					Expect(err).To(Equal(storeadapter.ErrorKeyNotFound))
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("Key not found"))
 
 					adapter.Create(buildNode(app2Service2))
 
@@ -264,7 +265,7 @@ var _ = Describe("AppServiceStoreWatcher", func() {
 				Eventually(func() error {
 					_, err := adapter.Get(key(app2Service2))
 					return err
-				}, 2).Should(Equal(storeadapter.ErrorKeyNotFound))
+				}, 2).Should(Not(BeNil()))
 
 				appServices := drainOutgoingChannel(outRemoveChan, 2)
 
