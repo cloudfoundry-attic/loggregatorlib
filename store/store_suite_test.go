@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"log"
 	"path"
 	"testing"
 
@@ -17,6 +18,7 @@ import (
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
 
 func TestStore(t *testing.T) {
+	log.SetOutput(GinkgoWriter)
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Store Suite")
 }
