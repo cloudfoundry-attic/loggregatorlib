@@ -1,9 +1,9 @@
 package store
 
 import (
+	"log"
 	"path"
 
-	"github.com/cloudfoundry/gosteno"
 	"github.com/cloudfoundry/storeadapter"
 
 	"github.com/cloudfoundry/loggregatorlib/appservice"
@@ -14,12 +14,11 @@ type AppServiceStoreWatcher struct {
 	adapter                   storeadapter.StoreAdapter
 	outAddChan, outRemoveChan chan<- appservice.AppService
 	cache                     cache.AppServiceWatcherCache
-	logger                    *gosteno.Logger
 
 	done chan struct{}
 }
 
-func NewAppServiceStoreWatcher(adapter storeadapter.StoreAdapter, cache cache.AppServiceWatcherCache, logger *gosteno.Logger) (*AppServiceStoreWatcher, <-chan appservice.AppService, <-chan appservice.AppService) {
+func NewAppServiceStoreWatcher(adapter storeadapter.StoreAdapter, cache cache.AppServiceWatcherCache) (*AppServiceStoreWatcher, <-chan appservice.AppService, <-chan appservice.AppService) {
 	outAddChan := make(chan appservice.AppService)
 	outRemoveChan := make(chan appservice.AppService)
 	return &AppServiceStoreWatcher{
@@ -27,7 +26,6 @@ func NewAppServiceStoreWatcher(adapter storeadapter.StoreAdapter, cache cache.Ap
 		outAddChan:    outAddChan,
 		outRemoveChan: outRemoveChan,
 		cache:         cache,
-		logger:        logger,
 		done:          make(chan struct{}),
 	}, outAddChan, outRemoveChan
 }
@@ -85,14 +83,13 @@ func (w *AppServiceStoreWatcher) Run() {
 				if !ok {
 					return
 				}
-				w.logger.Errorf("AppStoreWatcher: Got error while waiting for ETCD events: %s", err.Error())
+				log.Printf("AppStoreWatcher: Got error while waiting for ETCD events: %s", err.Error())
 				events, stopChan, errChan = w.adapter.Watch("/loggregator/services")
 			case event, ok := <-events:
 				if !ok {
 					return
 				}
 
-				w.logger.Debugf("AppStoreWatcher: Got an event from store %s", event.Type)
 				switch event.Type {
 				case storeadapter.CreateEvent, storeadapter.UpdateEvent:
 					if event.Node.Dir || len(event.Node.Value) == 0 {
@@ -111,7 +108,6 @@ func (w *AppServiceStoreWatcher) Run() {
 }
 
 func (w *AppServiceStoreWatcher) registerExistingServicesFromStore() {
-	w.logger.Debug("AppStoreWatcher: Ensuring existing services are registered")
 	services, _ := w.adapter.ListRecursively("/loggregator/services/")
 	for _, node := range services.ChildNodes {
 		for _, node := range node.ChildNodes {
@@ -119,7 +115,6 @@ func (w *AppServiceStoreWatcher) registerExistingServicesFromStore() {
 			w.Add(appService)
 		}
 	}
-	w.logger.Debug("AppStoreWatcher: Existing services all registered")
 }
 
 func appServiceFromStoreNode(node *storeadapter.StoreNode) appservice.AppService {
