@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"regexp"
 
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/loggregatorlib/server/handlers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,7 +21,7 @@ var _ = Describe("HttpHandler", func() {
 	BeforeEach(func() {
 		fakeResponseWriter = httptest.NewRecorder()
 		messagesChan = make(chan []byte, 10)
-		handler = handlers.NewHttpHandler(messagesChan, loggertesthelper.Logger())
+		handler = handlers.NewHttpHandler(messagesChan)
 	})
 
 	It("grabs recent logs and creates a multi-part HTTP response", func(done Done) {

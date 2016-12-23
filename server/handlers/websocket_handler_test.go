@@ -5,11 +5,8 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/cloudfoundry/loggregatorlib/loggertesthelper"
 	"github.com/cloudfoundry/loggregatorlib/server/handlers"
 	"github.com/gorilla/websocket"
-
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,7 +22,7 @@ var _ = Describe("WebsocketHandler", func() {
 	BeforeEach(func() {
 		fakeResponseWriter = httptest.NewRecorder()
 		messagesChan = make(chan []byte, 10)
-		handler = handlers.NewWebsocketHandler(messagesChan, 100*time.Millisecond, loggertesthelper.Logger())
+		handler = handlers.NewWebsocketHandler(messagesChan, 100*time.Millisecond)
 		handlerDone = make(chan struct{})
 		testServer = httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			handler.ServeHTTP(rw, r)
@@ -161,13 +158,10 @@ var _ = Describe("WebsocketHandler", func() {
 		})
 
 		It("logs an appropriate message", func() {
-			ws, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
+			_, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			time.Sleep(200 * time.Millisecond) // Longer than  the keepAlive timeout
-
-			expectedMessage := fmt.Sprintf("websocket handler: Connection from %s timed out", ws.LocalAddr().String())
-			Expect(loggertesthelper.TestLoggerSink.LogContents()).To(ContainSubstring(expectedMessage))
 			Eventually(handlerDone).Should(BeClosed())
 		})
 	})
@@ -178,9 +172,6 @@ var _ = Describe("WebsocketHandler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			ws.Close()
-
-			expectedMessage := fmt.Sprintf("websocket handler: connection from %s was closed", ws.LocalAddr().String())
-			Eventually(loggertesthelper.TestLoggerSink.LogContents).Should(ContainSubstring(expectedMessage))
 			Eventually(handlerDone).Should(BeClosed())
 		})
 	})
