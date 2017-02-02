@@ -6,6 +6,10 @@ Loggregatorlib includes packages and libraries used by loggregator.
 
 The emitter is an external library used to emit messages to the loggregator server.
 
+DEPRECATED
+------------------
+This library and its contents are no longer in use by Loggregator components.
+Packages that were still in use have been moved to the loggregator repository.
 
 Setup
 ------------------
