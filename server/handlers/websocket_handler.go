@@ -31,7 +31,7 @@ func (h *websocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	defer ws.Close()
 
 	closeCode, closeMessage := h.runWebsocketUntilClosed(ws)
-	ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(closeCode, closeMessage), time.Time{})
+	ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(closeCode, closeMessage), time.Now().Add(5*time.Second))
 }
 
 func (h *websocketHandler) runWebsocketUntilClosed(ws *websocket.Conn) (closeCode int, closeMessage string) {

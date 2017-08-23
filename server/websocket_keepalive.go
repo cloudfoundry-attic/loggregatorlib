@@ -26,9 +26,13 @@ func (k *KeepAlive) Run() {
 
 	timeout := time.NewTimer(k.keepAliveInterval)
 	for {
-		err := k.conn.WriteControl(websocket.PingMessage, nil, time.Time{})
+		err := k.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
 		if err != nil {
 			return
+		}
+
+		if !timeout.Stop() {
+			<-timeout.C
 		}
 		timeout.Reset(k.keepAliveInterval)
 		select {

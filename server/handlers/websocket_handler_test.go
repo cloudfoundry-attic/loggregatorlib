@@ -91,7 +91,6 @@ var _ = Describe("WebsocketHandler", func() {
 		ws, _, err := websocket.DefaultDialer.Dial(httpToWs(testServer.URL), nil)
 		Expect(err).NotTo(HaveOccurred())
 
-		//		ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Time{})
 		ws.Close()
 
 		Eventually(handlerDone).Should(BeClosed())
